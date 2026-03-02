@@ -1,4 +1,3 @@
-
 import { AppSettings, Article, Author, ArchivedArticle } from '../types';
 import { getArticles, getAuthors, getArchivedArticles, saveArticlesToLocal, saveAuthorsToLocal, saveArchivedArticlesToLocal } from './dataService';
 
@@ -431,5 +430,3 @@ export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ succ
         return { success: false, message: `Error Sync: ${e.message}` };
     }
 };
-
-
