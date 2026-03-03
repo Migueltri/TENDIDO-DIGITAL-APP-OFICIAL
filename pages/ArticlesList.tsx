@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
-import { getArticles, deleteArticle, getAuthors, saveArticle, stopAutoSync, getArchivedArticles, restoreArticle } from '../services/dataService';
-import { syncWithGitHub } from '../services/githubService';
+import { getArticles, deleteArticle, getAuthors, saveArticle, stopAutoSync, getArchivedArticles, restoreArticle } from '../Services/dataService';
+import { syncWithGitHub } from '../Services/githubService';
 import { Article, Category, Author, ArchivedArticle } from '../types';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Edit2, Filter, AlertCircle, AlertTriangle, X, CheckCircle, Clock, CloudUpload, Loader2, EyeOff, Archive, RefreshCcw, ShieldAlert, Eye } from 'lucide-react';
