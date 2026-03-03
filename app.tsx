@@ -9,10 +9,12 @@ import Settings from './pages/Settings';
 import InstallApp from './pages/InstallApp';
 import Home from './src/pages/home/page'; 
 import { AuthProvider } from './contexts/AuthContext';
-import { triggerCloudSync, setSyncCallback } from './services/dataService';
-import { syncWithGitHub } from './services/githubService';
 
-// Componente auxiliar para manejar la persistencia de navegación y el auto-guardado global
+// ATENCIÓN: Esta línea es la que causa el error en Vercel. 
+// Si en GitHub la carpeta se llama "Services" (con mayúscula), debes cambiar "./services" a "./Services".
+import { setSyncCallback } from './Services/dataService'; 
+import { syncWithGitHub } from './Services/githubService';
+
 const AppStateHandler: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -42,21 +44,14 @@ const AppStateHandler: React.FC = () => {
     useEffect(() => {
         const lastRoute = localStorage.getItem('td_last_route');
         if (lastRoute && lastRoute !== location.pathname && lastRoute !== '/') {
-            // Evitamos redirigir si es la misma o si es root (para no molestar en login futuros)
             navigate(lastRoute);
         }
-    }, []);
+    }, [location.pathname, navigate]);
 
     // 2. Guardar ruta actual en cada cambio
     useEffect(() => {
         localStorage.setItem('td_last_route', location.pathname);
     }, [location]);
-
-    // 3. AUTO-BACKUP REMOVIDO PARA EVITAR LOGS EXCESIVOS EN VERCEL
-    useEffect(() => {
-        // Se ha quitado el setInterval para no saturar la API de GitHub
-        // y evitar facturas altas en Vercel.
-    }, []);
 
     return null;
 };
