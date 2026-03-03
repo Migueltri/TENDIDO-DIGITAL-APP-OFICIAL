@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useRef } from 'react';
-import { getAuthors, saveAuthor, deleteAuthor } from '../services/dataService';
-import { syncWithGitHub } from '../services/githubService'; // Importamos la nueva función segura
+import { getAuthors, saveAuthor, deleteAuthor } from '../Services/dataService';
+import { syncWithGitHub } from '../Services/githubService'; // Importamos la nueva función segura
 import { Author, SystemRole } from '../types';
 import { Plus, Trash2, User, ShieldCheck, UserCog, Edit2, Camera, X, Upload, Loader2, RefreshCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
