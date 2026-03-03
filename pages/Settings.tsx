@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getSettings, saveSettings, verifyConnection } from '../Services/githubService';
 import { AppSettings } from '../types';
@@ -7,12 +6,12 @@ import { Save, Code, Copy, CheckCircle, AlertCircle, AlertTriangle, ArrowDown, E
 const Settings: React.FC = () => {
   // DATOS PRE-CARGADOS SEGÚN PETICIÓN
   const defaultSettings: AppSettings = {
-    githubToken: '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',
-    repoOwner: 'MiguelTro',
+    githubToken: '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',
+    repoOwner: 'MiguelTri',
     repoName: 'tendido-digital-oficial',
     filePath: 'public/data/db.json',
     repoBranch: 'main',
-    vercelDeployHook: ''
+    vercelDeployHook: 'https://api.vercel.com/v1/integrations/deploy/prj_1Z8PRTLFg4rWZUG9T6aVkhrYf6hz/VZWIGdiqlt'
   };
 
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
