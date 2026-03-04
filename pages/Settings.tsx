@@ -5,7 +5,7 @@ import { Save, Code, Copy, CheckCircle, AlertCircle, AlertTriangle, ArrowDown, E
 
 const Settings: React.FC = () => {
   const defaultSettings: AppSettings = {
-    githubToken: '', // Token vacío por seguridad
+    githubToken: '',
     repoOwner: 'migueltri',
     repoName: 'tendido-digital-cms',
     filePath: 'public/data/db.json',
@@ -22,7 +22,6 @@ const Settings: React.FC = () => {
   useEffect(() => {
     let currentSettings = getSettings();
     
-    // Forzar actualización si tiene datos viejos
     if (
         currentSettings.repoName === 'Tendido-Digital' || 
         currentSettings.repoName === 'tendido-digital-oficial' ||
@@ -233,6 +232,19 @@ const Settings: React.FC = () => {
                         required 
                     />
                 </div>
+            </div>
+
+            <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Vercel Deploy Hook URL (Opcional)</label>
+                <input 
+                    type="text" 
+                    name="vercelDeployHook" 
+                    value={settings.vercelDeployHook || ''} 
+                    onChange={handleChange} 
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 outline-none bg-white text-gray-800" 
+                    placeholder="https://api.vercel.com/v1/integrations/deploy/..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Si se configura, se llamará automáticamente a esta URL para forzar el despliegue en Vercel tras subir cambios.</p>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
