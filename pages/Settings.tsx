@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { getSettings, saveSettings, verifyConnection } from '../services/githubService';
 import { AppSettings } from '../types';
 import { Save, Code, Copy, CheckCircle, AlertCircle, AlertTriangle, ArrowDown, Edit, Github, Server, Globe } from 'lucide-react';
 
 const Settings: React.FC = () => {
-  // DATOS PRE-CARGADOS SEGÚN PETICIÓN
   const defaultSettings: AppSettings = {
-    githubToken: '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',
+    githubToken: '', // Token vacío por seguridad
     repoOwner: 'migueltri',
     repoName: 'tendido-digital-cms',
     filePath: 'public/data/db.json',
@@ -16,17 +14,15 @@ const Settings: React.FC = () => {
   };
 
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  
   const [saved, setSaved] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [testStatus, setTestStatus] = useState<{ loading: boolean, msg: string, success?: boolean } | null>(null);
-  const [showCode, setShowCode] = useState(false); 
 
   useEffect(() => {
     let currentSettings = getSettings();
     
-    // Force update the repoName and token if it's the old default
+    // Forzar actualización si tiene datos viejos
     if (
         currentSettings.repoName === 'Tendido-Digital' || 
         currentSettings.repoName === 'tendido-digital-oficial' ||
@@ -35,23 +31,20 @@ const Settings: React.FC = () => {
     ) {
         currentSettings.repoName = 'tendido-digital-cms';
         currentSettings.repoOwner = 'migueltri';
-        currentSettings.githubToken = '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';
+        currentSettings.githubToken = ''; 
         saveSettings(currentSettings);
     }
     
-    // Si ya existe configuración guardada, la usamos. Si no, usamos la default hardcodeada.
     if (currentSettings.githubToken) {
         setSettings(currentSettings);
         if (currentSettings.githubToken && currentSettings.repoName) {
             setIsConfigured(true);
-            // Verificar conexión al cargar
             verifyConnection().then(res => {
                 if(res.success) setTestStatus({ loading: false, msg: res.message, success: true });
                 else setTestStatus({ loading: false, msg: res.message, success: false });
             });
         }
     } else {
-        // Primera vez: Guardamos los defaults automáticamente para que funcione YA
         saveSettings(defaultSettings);
         setSettings(defaultSettings);
         setIsEditing(true);
@@ -72,16 +65,14 @@ const Settings: React.FC = () => {
     saveSettings(settings);
     setSaved(true);
     setIsConfigured(true);
-    setIsEditing(false); // Cerrar modo edición
+    setIsEditing(false);
     setTestStatus(null);
     setTimeout(() => setSaved(false), 3000);
-    
-    // Probar conexión inmediatamente después de guardar
     handleTestConnection();
   };
 
   const handleTestConnection = async () => {
-      saveSettings(settings); // Asegurar que probamos lo último escrito
+      saveSettings(settings);
       setTestStatus({ loading: true, msg: 'Conectando con GitHub...', success: false });
       const result = await verifyConnection();
       setTestStatus({ loading: false, msg: result.message, success: result.success });
@@ -89,14 +80,11 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mb-12">
-      
-      {/* Header */}
       <div>
         <h2 className="text-3xl font-bold text-gray-800">Conexión con la Web</h2>
         <p className="text-gray-500">Configuración del repositorio de <strong>tendidodigital.es</strong>.</p>
       </div>
 
-      {/* ESTADO DE CONEXIÓN (VISUAL) */}
       {isConfigured && !isEditing && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
               <div className="bg-green-50 p-4 border-b border-green-100 flex items-center justify-between">
@@ -175,7 +163,6 @@ const Settings: React.FC = () => {
           </div>
       )}
 
-      {/* FORMULARIO (Solo visible si no hay config o se está editando) */}
       {(isEditing || !isConfigured) && (
         <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 space-y-6 animate-fade-in-down">
             <div className="flex justify-between items-center mb-4">
@@ -193,14 +180,9 @@ const Settings: React.FC = () => {
                     value={settings.githubToken} 
                     onChange={handleChange} 
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 outline-none bg-white text-gray-800 font-mono text-sm" 
-                    placeholder="github_pat_..."
+                    placeholder="ghp_..."
                     required 
                 />
-                {settings.githubToken === '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' && (
-                    <p className="text-xs text-red-600 font-bold mt-1">
-                        ⚠️ ATENCIÓN: Este token ha sido revocado por GitHub por seguridad al ser expuesto. Debes generar uno nuevo en GitHub y pegarlo aquí.
-                    </p>
-                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -252,26 +234,6 @@ const Settings: React.FC = () => {
                     />
                 </div>
             </div>
-
-            <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Vercel Deploy Hook URL (Opcional)</label>
-                <input 
-                    type="text" 
-                    name="vercelDeployHook" 
-                    value={settings.vercelDeployHook || ''} 
-                    onChange={handleChange} 
-                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 outline-none bg-white text-gray-800" 
-                    placeholder="https://api.vercel.com/v1/integrations/deploy/..."
-                />
-                <p className="text-xs text-gray-500 mt-1">Si se configura, se llamará automáticamente a esta URL para forzar el despliegue en Vercel tras subir cambios.</p>
-            </div>
-
-            {testStatus && isEditing && (
-                <div className={`p-3 rounded-lg flex items-center gap-2 text-sm ${testStatus.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                    {testStatus.success ? <CheckCircle size={16}/> : <AlertCircle size={16}/>}
-                    {testStatus.msg}
-                </div>
-            )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button 
