@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { getArticles, deleteArticle, getAuthors, saveArticle, stopAutoSync, getArchivedArticles, restoreArticle } from '../services/dataService';
 import { syncWithGitHub } from '../services/githubService';
