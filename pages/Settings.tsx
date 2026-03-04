@@ -7,7 +7,7 @@ const Settings: React.FC = () => {
   const defaultSettings: AppSettings = {
     githubToken: '',
     repoOwner: 'migueltri',
-    repoName: 'tendido-digital-cms',
+    repoName: 'tendido-digital',
     filePath: 'public/data/db.json',
     repoBranch: 'main',
     vercelDeployHook: ''
