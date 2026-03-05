@@ -41,61 +41,62 @@ const ArticlesList: React.FC = () => {
   const handleApprove = async (article: Article) => {
       if (!confirm(`¿Publicar "${article.title}" en la web ahora mismo?`)) return;
       
-      setIsSyncing(true);
       try {
+          // 1. Actualización optimista
           const updatedArticle = { ...article, isPublished: true };
           saveArticle(updatedArticle, true); // Guardar local y saltar autoSync
-          loadData(); // Refrescar UI
+          loadData(); // Refrescar UI INMEDIATAMENTE
           
-          // Subir a la nube
-          const result = await syncWithGitHub(true);
-          loadData(); // Refrescar UI con el estado final mergeado
-          
-          if (result.success) {
-              alert("✅ Noticia publicada. Vercel está desplegando los cambios.");
-              setPendingChanges(0);
-          } else {
-              alert("⚠️ Se publicó localmente, pero falló la subida: " + result.message);
-              setPendingChanges(prev => prev + 1);
-          }
+          // 2. Sincronizar en segundo plano
+          setIsSyncing(true);
+          syncWithGitHub(true).then(result => {
+              if (result.success) {
+                  alert("✅ ¡Noticia publicada! Vercel está desplegando la web (1-2 min).");
+                  setPendingChanges(0);
+              } else {
+                  alert("⚠️ Se guardó localmente, pero hubo un error subiendo a la web: " + result.message);
+                  setPendingChanges(prev => prev + 1);
+              }
+          }).finally(() => {
+              setIsSyncing(false);
+          });
       } catch (error: any) {
           if (error.name === 'QuotaExceededError' || error.message?.includes('quota') || error.message?.includes('exceeded') || error.message === 'QuotaExceededError') {
               alert("❌ Error: El almacenamiento local está lleno. Por favor, elimina noticias antiguas o reduce el tamaño de las imágenes.");
           } else {
               alert("❌ Error de conexión.");
           }
-      } finally {
-          setIsSyncing(false);
       }
   };
 
   const handleUnpublish = async (article: Article) => {
       if(!confirm(`¿Retirar "${article.title}" de la web? Pasará a ser un borrador y se actualizará la web inmediatamente.`)) return;
       
-      setIsSyncing(true);
       try {
+          // 1. Actualización optimista
           const updatedArticle = { ...article, isPublished: false };
           saveArticle(updatedArticle, true); // Guardar local y saltar autoSync
-          loadData();
+          loadData(); // Refrescar UI INMEDIATAMENTE
           
-          const result = await syncWithGitHub(true);
-          loadData(); // Refrescar UI con el estado final mergeado
-          
-          if (result.success) {
-              alert("✅ Noticia retirada de la web correctamente. Vercel está desplegando los cambios.");
-              setPendingChanges(0);
-          } else {
-              alert("⚠️ Retirada localmente, pero falló la sincronización: " + result.message);
-              setPendingChanges(prev => prev + 1);
-          }
+          // 2. Sincronizar en segundo plano
+          setIsSyncing(true);
+          syncWithGitHub(true).then(result => {
+              if (result.success) {
+                  alert("✅ Noticia retirada de la web correctamente. Vercel está desplegando los cambios.");
+                  setPendingChanges(0);
+              } else {
+                  alert("⚠️ Retirada localmente, pero falló la sincronización: " + result.message);
+                  setPendingChanges(prev => prev + 1);
+              }
+          }).finally(() => {
+              setIsSyncing(false);
+          });
       } catch (error: any) {
           if (error.name === 'QuotaExceededError' || error.message?.includes('quota') || error.message?.includes('exceeded') || error.message === 'QuotaExceededError') {
               alert("❌ Error: El almacenamiento local está lleno. Por favor, elimina noticias antiguas o reduce el tamaño de las imágenes.");
           } else {
               alert("❌ Error de conexión.");
           }
-      } finally {
-          setIsSyncing(false);
       }
   };
   
@@ -150,21 +151,23 @@ const ArticlesList: React.FC = () => {
           // 2. IMPORTANTE: Parar el Auto-Guardado
           stopAutoSync(); 
           
-          loadData(); // Actualizar UI
+          // 3. Actualizar UI INMEDIATAMENTE para que no haya lag
+          loadData(); 
+          setIsDeleting(false);
+          setArticleToDelete(null); 
           
-          // 3. Sincronizar MANUALMENTE para TODOS
-          const result = await syncWithGitHub();
-          loadData(); // Refrescar UI con el estado final mergeado
-          if (result.success) {
-              setPendingChanges(0); 
-          } else {
-              alert("⚠️ Se movió al historial, pero hubo un error actualizando la web: " + result.message);
-              setPendingChanges(prev => prev + 1);
-          }
+          // 4. Sincronizar en segundo plano (no bloquea al usuario)
+          syncWithGitHub().then(result => {
+              if (result.success) {
+                  setPendingChanges(0); 
+              } else {
+                  console.warn("Error actualizando la web en segundo plano: " + result.message);
+                  setPendingChanges(prev => prev + 1);
+              }
+          });
       } catch (error) {
           console.error(error);
           alert("Error al eliminar");
-      } finally {
           setIsDeleting(false);
           setArticleToDelete(null); 
       }
