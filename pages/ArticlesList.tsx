@@ -20,7 +20,6 @@ const ArticlesList: React.FC = () => {
   
   const [pendingChanges, setPendingChanges] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // State for the Delete Confirmation Modal
   const [articleToDelete, setArticleToDelete] = useState<{id: string, title: string} | null>(null);
@@ -36,33 +35,36 @@ const ArticlesList: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [viewMode]); // Reload when switching tabs
+  }, [viewMode]);
 
   const handleApprove = async (article: Article) => {
       if (!confirm(`¿Publicar "${article.title}" en la web ahora mismo?`)) return;
       
       try {
-          // 1. Actualización optimista
+          // 1. Actualización optimista: Reflejamos el cambio en la UI instantáneamente
+          setArticles(prev => prev.map(a => a.id === article.id ? { ...a, isPublished: true } : a));
+          
           const updatedArticle = { ...article, isPublished: true };
-          saveArticle(updatedArticle, true); // Guardar local y saltar autoSync
-          loadData(); // Refrescar UI INMEDIATAMENTE
+          saveArticle(updatedArticle, true); 
           
           // 2. Sincronizar en segundo plano
           setIsSyncing(true);
           syncWithGitHub(true).then(result => {
               if (result.success) {
-                  alert("✅ ¡Noticia publicada! Vercel está desplegando la web (1-2 min).");
                   setPendingChanges(0);
+                  // Opcional: Notificación discreta si tienes un sistema de toasts
               } else {
                   alert("⚠️ Se guardó localmente, pero hubo un error subiendo a la web: " + result.message);
                   setPendingChanges(prev => prev + 1);
+                  loadData(); // Revertimos si falla
               }
           }).finally(() => {
               setIsSyncing(false);
           });
       } catch (error: any) {
-          if (error.name === 'QuotaExceededError' || error.message?.includes('quota') || error.message?.includes('exceeded') || error.message === 'QuotaExceededError') {
-              alert("❌ Error: El almacenamiento local está lleno. Por favor, elimina noticias antiguas o reduce el tamaño de las imágenes.");
+          loadData(); // Revertimos vista optimista si hay error
+          if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
+              alert("❌ Error: El almacenamiento local está lleno. Por favor, elimina noticias antiguas.");
           } else {
               alert("❌ Error de conexión.");
           }
@@ -74,26 +76,28 @@ const ArticlesList: React.FC = () => {
       
       try {
           // 1. Actualización optimista
+          setArticles(prev => prev.map(a => a.id === article.id ? { ...a, isPublished: false } : a));
+          
           const updatedArticle = { ...article, isPublished: false };
-          saveArticle(updatedArticle, true); // Guardar local y saltar autoSync
-          loadData(); // Refrescar UI INMEDIATAMENTE
+          saveArticle(updatedArticle, true);
           
           // 2. Sincronizar en segundo plano
           setIsSyncing(true);
           syncWithGitHub(true).then(result => {
               if (result.success) {
-                  alert("✅ Noticia retirada de la web correctamente. Vercel está desplegando los cambios.");
                   setPendingChanges(0);
               } else {
                   alert("⚠️ Retirada localmente, pero falló la sincronización: " + result.message);
                   setPendingChanges(prev => prev + 1);
+                  loadData(); // Revertimos si falla
               }
           }).finally(() => {
               setIsSyncing(false);
           });
       } catch (error: any) {
-          if (error.name === 'QuotaExceededError' || error.message?.includes('quota') || error.message?.includes('exceeded') || error.message === 'QuotaExceededError') {
-              alert("❌ Error: El almacenamiento local está lleno. Por favor, elimina noticias antiguas o reduce el tamaño de las imágenes.");
+          loadData();
+          if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
+              alert("❌ Error: El almacenamiento local está lleno.");
           } else {
               alert("❌ Error de conexión.");
           }
@@ -103,20 +107,18 @@ const ArticlesList: React.FC = () => {
   const handleRestore = async (id: string) => {
       if(!window.confirm("¿Restaurar esta noticia? Volverá a la lista de borradores activos.")) return;
       
-      setIsSyncing(true); // Usamos el estado de loading
+      // Actualización optimista: la quitamos de archivados visualmente
+      setArchivedArticles(prev => prev.filter(a => a.id !== id));
+      
+      setIsSyncing(true); 
       try {
           const success = restoreArticle(id);
           
           if (success) {
-              // 1. Refrescar localmente
-              loadData();
-              
-              // 2. Sincronizar inmediatamente con la nube
               const result = await syncWithGitHub();
-              loadData(); // Refrescar UI con el estado final mergeado
+              loadData(); 
               
               if (result.success) {
-                  alert("✅ Noticia restaurada y sincronizada con la web.");
                   setFilterCategory('all');
                   setSearchTerm('');
                   setViewMode('active');
@@ -127,9 +129,11 @@ const ArticlesList: React.FC = () => {
               }
           } else {
               alert("❌ Error al restaurar: No se encontró la noticia en el archivo.");
+              loadData(); // Revertimos
           }
       } catch (e) {
           alert("⚠️ Error de conexión al restaurar en la nube.");
+          loadData();
           setViewMode('active');
       } finally {
           setIsSyncing(false);
@@ -140,23 +144,20 @@ const ArticlesList: React.FC = () => {
     setArticleToDelete({ id, title });
   };
 
-  // Lógica de borrado (Ahora es archivado)
-  const confirmDelete = async () => {
+  // ELIMINACIÓN OPTIMISTA: Esto elimina el "lag" al borrar
+  const confirmDelete = () => {
     if (articleToDelete) {
-      setIsDeleting(true);
+      const idToDelete = articleToDelete.id;
+      
+      // 1. ACTUALIZACIÓN VISUAL INMEDIATA (Optimista)
+      setArticles(prev => prev.filter(article => article.id !== idToDelete));
+      setArticleToDelete(null); // Cerramos el modal al instante
+      
+      // 2. Procesamiento en segundo plano
       try {
-          // 1. Borrar Localmente (En realidad, Archiva)
-          deleteArticle(articleToDelete.id, currentUser?.id || 'unknown');
-          
-          // 2. IMPORTANTE: Parar el Auto-Guardado
+          deleteArticle(idToDelete, currentUser?.id || 'unknown');
           stopAutoSync(); 
           
-          // 3. Actualizar UI INMEDIATAMENTE para que no haya lag
-          loadData(); 
-          setIsDeleting(false);
-          setArticleToDelete(null); 
-          
-          // 4. Sincronizar en segundo plano (no bloquea al usuario)
           syncWithGitHub().then(result => {
               if (result.success) {
                   setPendingChanges(0); 
@@ -164,12 +165,13 @@ const ArticlesList: React.FC = () => {
                   console.warn("Error actualizando la web en segundo plano: " + result.message);
                   setPendingChanges(prev => prev + 1);
               }
+              // Opcional: Recargar datos reales silenciosamente
+              // setArticles(getArticles());
           });
       } catch (error) {
           console.error(error);
-          alert("Error al eliminar");
-          setIsDeleting(false);
-          setArticleToDelete(null); 
+          alert("Error crítico al eliminar en la base de datos local.");
+          loadData(); // Revertimos vista si falla localmente
       }
     }
   };
@@ -183,9 +185,8 @@ const ArticlesList: React.FC = () => {
     stopAutoSync();
     try {
         const result = await syncWithGitHub(forcePush);
-        loadData(); // Refrescar UI con el estado final mergeado
+        loadData(); 
         if (result.success) {
-            alert(result.message);
             setPendingChanges(0);
         } else {
             alert("❌ Error al publicar: " + result.message);
@@ -197,7 +198,6 @@ const ArticlesList: React.FC = () => {
     }
   };
 
-  // Filtrado dinámico según la vista
   const sourceList = viewMode === 'active' ? articles : archivedArticles;
   
   const filteredList = sourceList.filter(article => {
@@ -247,7 +247,6 @@ const ArticlesList: React.FC = () => {
                   </div>
               </div>
               
-              {/* Botón de Sincronización Manual para TODOS */}
               <button 
                 onClick={() => handleQuickSyncInternal(false)}
                 disabled={isSyncing}
@@ -424,7 +423,6 @@ const ArticlesList: React.FC = () => {
                 <th className="p-4 font-medium w-24">Estado</th>
                 <th className="p-4 font-medium">Noticia</th>
                 <th className="p-4 font-medium w-32">Categoría</th>
-                {/* Fusionamos Autor y Fecha en una cabecera más ancha */}
                 <th className="p-4 font-medium w-80">
                     {viewMode === 'history' ? 'Archivado' : 'Autor y Fecha'}
                 </th>
@@ -445,8 +443,6 @@ const ArticlesList: React.FC = () => {
                   const author = getAuthor(article.authorId);
                   const authorName = author ? author.name : 'Desconocido';
                   const dateStr = new Date(article.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                  
-                  // Casting seguro para propiedades de archivo
                   const archivedItem = article as ArchivedArticle;
 
                   return (
@@ -489,7 +485,6 @@ const ArticlesList: React.FC = () => {
                         </span>
                       </td>
                       
-                      {/* COLUMNA DINÁMICA: Autor o Datos de Archivo */}
                       <td className="p-4 align-top pt-4">
                         <div className="flex items-center gap-3">
                            {viewMode === 'active' ? (
@@ -525,7 +520,6 @@ const ArticlesList: React.FC = () => {
                       <td className="p-4 text-right align-top pt-4">
                         <div className="flex items-center justify-end gap-2">
                           
-                          {/* ACCIONES MODO ACTIVO */}
                           {viewMode === 'active' && (
                               <>
                                 {!article.isPublished && (
@@ -574,7 +568,6 @@ const ArticlesList: React.FC = () => {
                               </>
                           )}
 
-                          {/* ACCIONES MODO HISTORIAL (Solo Restaurar) */}
                           {viewMode === 'history' && (
                               <button 
                                 onClick={() => handleRestore(article.id)}
@@ -609,7 +602,6 @@ const ArticlesList: React.FC = () => {
               </div>
               <button 
                 onClick={cancelDelete} 
-                disabled={isDeleting}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
               >
                 <X size={20} />
@@ -617,7 +609,7 @@ const ArticlesList: React.FC = () => {
             </div>
             
             <p className="text-gray-600 mb-2">
-              Se eliminará de la página web <strong>tendidodigital.es</strong> inmediatamente, pero se guardará en el <strong>Historial de Eliminadas</strong> por seguridad.
+              Se eliminará de la página web inmediatamente, pero se guardará en el <strong>Historial de Eliminadas</strong> por seguridad.
             </p>
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-6">
               <p className="font-medium text-gray-900 italic line-clamp-2">
@@ -628,27 +620,16 @@ const ArticlesList: React.FC = () => {
             <div className="flex justify-end gap-3">
               <button 
                 onClick={cancelDelete}
-                disabled={isDeleting}
                 className="px-4 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button 
                 onClick={confirmDelete}
-                disabled={isDeleting}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
               >
-                {isDeleting ? (
-                    <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Archivando...
-                    </>
-                ) : (
-                    <>
-                        <Trash2 size={18} />
-                        Eliminar y Archivar
-                    </>
-                )}
+                <Trash2 size={18} />
+                Eliminar y Archivar
               </button>
             </div>
           </div>
