@@ -27,6 +27,15 @@ const ArticlesList: React.FC = () => {
   // State for the Preview Modal
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
+// NUEVO: Estado para controlar cuántas noticias se ven a la vez
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // NUEVO: Resetear la página si cambiamos de pestaña o buscamos algo
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [viewMode, filterCategory, searchTerm]);
+  
   const loadData = () => {
     setArticles(getArticles());
     setArchivedArticles(getArchivedArticles());
@@ -209,6 +218,10 @@ const ArticlesList: React.FC = () => {
       return dateB - dateA; // Orden descendente (más reciente primero)
   });
 
+// NUEVO: Cortamos la lista para que el móvil no explote
+  const paginatedList = filteredList.slice(0, currentPage * ITEMS_PER_PAGE);
+  const hasMore = paginatedList.length < filteredList.length;
+  
   const getAuthor = (id: string) => {
     return authors.find(a => a.id === id);
   };
@@ -287,7 +300,11 @@ const ArticlesList: React.FC = () => {
           >
               <CheckCircle size={18} />
               Activas y Borradores
+              <span className={`text-xs px-2 py-0.5 rounded-full ${viewMode === 'active' ? 'bg-red-100 text-brand-red' : 'bg-gray-200 text-gray-600'}`}>
+                  {articles.length}
+              </span>
           </button>
+        
           {isAdmin && (
               <button 
                 onClick={() => setViewMode('history')}
@@ -352,7 +369,7 @@ const ArticlesList: React.FC = () => {
                     {viewMode === 'active' ? 'No se encontraron noticias activas.' : 'El historial está vacío.'}
                 </div>
             ) : (
-                filteredList.map((article) => {
+                paginatedList.map((article) => {
                     const author = getAuthor(article.authorId);
                     const authorName = author ? author.name : 'Desconocido';
                     const dateStr = new Date(article.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -441,7 +458,7 @@ const ArticlesList: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredList.map((article) => {
+                paginatedList.map((article) => {
                   const author = getAuthor(article.authorId);
                   const authorName = author ? author.name : 'Desconocido';
                   const dateStr = new Date(article.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -592,6 +609,19 @@ const ArticlesList: React.FC = () => {
         </div>
       </div>
 
+{/* NUEVO: Botón de Cargar Más */}
+      {hasMore && (
+          <div className="p-6 flex justify-center bg-white border-t border-gray-100">
+              <button 
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                  Cargar más noticias...
+              </button>
+          </div>
+      )}
+      </div> {/* Cierre del div principal de la tabla/lista */}
+      
       {articleToDelete && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade-in-up">
