@@ -281,7 +281,7 @@ const ArticleForm: React.FC = () => {
     }
   };
 
-  const handleSave = async (e: React.MouseEvent, shouldPublish: boolean) => {
+const handleSave = async (e: React.MouseEvent, shouldPublish: boolean) => {
     if (isSubmitting || loadingImage) return; 
 
     if (!formData.title || !formData.authorId) {
@@ -309,11 +309,15 @@ const ArticleForm: React.FC = () => {
         return;
     }
 
+    // NUEVO: Capturamos el texto real del DOM justo en el momento de guardar, a prueba de desincronizaciones
+    const finalContent = editorRef.current?.innerHTML || formData.content || '';
+
     const articleToSave: Article = {
       id: formData.id || generateId(),
       title: formData.title || '',
       summary: formData.summary || '',
-      content: formData.content || '',
+      // NUEVO: Usamos finalContent en lugar de formData.content
+      content: finalContent,
       category: formData.category as Category,
       authorId: formData.authorId || '',
       imageUrl: formData.imageUrl || 'https://picsum.photos/800/600',
