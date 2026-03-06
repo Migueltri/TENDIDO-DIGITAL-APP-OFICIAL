@@ -1,4 +1,3 @@
-
 import LZString from 'lz-string';
 import { Article, ArchivedArticle, Author, Category } from '../types';
 
@@ -24,7 +23,7 @@ export const INITIAL_ARTICLES: Article[] = [
     imageCaption: 'Presentación del libro en el Auditorio',
     photoCredit: 'Manolo Herrera',
     category: Category.ACTUALIDAD,
-    authorId: '3', // Manolo Herrera
+    authorId: '3', 
     date: new Date("2026-02-16T10:00:00").toISOString(),
     isPublished: true,
     contentImages: []
@@ -39,7 +38,7 @@ export const INITIAL_ARTICLES: Article[] = [
     photoCredit: 'Tendido Digital',
     contentImages: [],
     category: Category.CRONICAS,
-    authorId: '2', // Nerea F.Elena
+    authorId: '2', 
     date: new Date("2026-02-15T18:00:00").toISOString(),
     isPublished: true,
     bullfightLocation: 'Plaza Mayor de Ciudad Rodrigo',
@@ -57,8 +56,17 @@ export const INITIAL_ARTICLES: Article[] = [
 
 const STORAGE_KEYS = {
   ARTICLES: 'td_articles_v4',
-  AUTHORS: 'td_authors_v10', // Updated to force refresh with new images
+  AUTHORS: 'td_authors_v10', 
   ARCHIVE: 'td_archive_v4', 
+};
+
+// --- NUEVO: SISTEMA DE CACHÉ EN MEMORIA (RAM) ---
+// La clave del rendimiento: Almacena los datos en variables rápidas
+// y evita bloqueos del hilo principal al cambiar de página.
+let memoryCache = {
+    articles: null as Article[] | null,
+    archive: null as ArchivedArticle[] | null,
+    authors: null as Author[] | null
 };
 
 // --- SISTEMA DE AUTO-GUARDADO (AUTO-SYNC) ---
@@ -92,10 +100,13 @@ export const triggerCloudSync = () => {
 };
 
 export const getAuthors = (): Author[] => {
+  if (memoryCache.authors) return memoryCache.authors; // Lee la RAM al instante
+
   const stored = localStorage.getItem(STORAGE_KEYS.AUTHORS);
   if (!stored) {
     const initialJson = JSON.stringify(INITIAL_AUTHORS);
     localStorage.setItem(STORAGE_KEYS.AUTHORS, LZString.compressToUTF16(initialJson));
+    memoryCache.authors = INITIAL_AUTHORS;
     return INITIAL_AUTHORS;
   }
   
@@ -114,9 +125,11 @@ export const getAuthors = (): Author[] => {
   if (Array.isArray(parsed) && parsed.length === 0) {
       const initialJson = JSON.stringify(INITIAL_AUTHORS);
       localStorage.setItem(STORAGE_KEYS.AUTHORS, LZString.compressToUTF16(initialJson));
+      memoryCache.authors = INITIAL_AUTHORS;
       return INITIAL_AUTHORS;
   }
   
+  memoryCache.authors = parsed;
   return parsed;
 };
 
@@ -137,6 +150,7 @@ export const saveAuthor = (author: Author, skipSync = false): void => {
 };
 
 export const saveAuthorsToLocal = (authors: Author[]): void => {
+    memoryCache.authors = authors; // Actualiza la caché
     try {
         const json = JSON.stringify(authors);
         const compressed = LZString.compressToUTF16(json);
@@ -158,10 +172,13 @@ export const deleteAuthor = (id: string): void => {
 };
 
 export const getArticles = (): Article[] => {
+  if (memoryCache.articles) return memoryCache.articles; // Lectura instantánea
+
   const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
   if (!stored) {
     const initialJson = JSON.stringify(INITIAL_ARTICLES);
     localStorage.setItem(STORAGE_KEYS.ARTICLES, LZString.compressToUTF16(initialJson));
+    memoryCache.articles = INITIAL_ARTICLES;
     return INITIAL_ARTICLES;
   }
   
@@ -177,7 +194,6 @@ export const getArticles = (): Article[] => {
       articles = JSON.parse(stored);
   }
   
-  // Migración defensiva para imágenes antiguas
   const updatedArticles = articles.map((a: any) => {
       if (a.contentImages && a.contentImages.length > 0 && typeof a.contentImages[0] === 'string') {
           a.contentImages = a.contentImages.map((img: string) => ({ url: img, caption: '' }));
@@ -185,10 +201,12 @@ export const getArticles = (): Article[] => {
       return a;
   });
   
+  memoryCache.articles = updatedArticles;
   return updatedArticles;
 };
 
 export const saveArticlesToLocal = (articles: Article[]): void => {
+    memoryCache.articles = articles; // Actualiza la caché en tiempo real
     let currentArticles = [...articles];
     let saved = false;
     
@@ -200,14 +218,12 @@ export const saveArticlesToLocal = (articles: Article[]): void => {
             saved = true;
         } catch (e: any) {
             if (e.name === 'QuotaExceededError' || e.message?.includes('quota') || e.message?.includes('exceeded')) {
-                // Find the oldest published article to remove
                 const publishedArticles = currentArticles.filter(a => a.isPublished);
                 if (publishedArticles.length > 1) {
                     publishedArticles.sort((a, b) => new Date(a.lastModified || a.date).getTime() - new Date(b.lastModified || b.date).getTime());
                     const oldestId = publishedArticles[0].id;
                     currentArticles = currentArticles.filter(a => a.id !== oldestId);
                 } else {
-                    // No published articles left to drop, we must throw to prevent data loss of drafts or the last edited article
                     console.error("Quota exceeded and no safe articles left to drop.");
                     throw new Error("QuotaExceededError");
                 }
@@ -220,26 +236,39 @@ export const saveArticlesToLocal = (articles: Article[]): void => {
     
     if (currentArticles.length < articles.length) {
         console.warn(`Dropped ${articles.length - currentArticles.length} articles from local storage due to quota.`);
+        memoryCache.articles = currentArticles; 
     }
 };
 
 export const getArchivedArticles = (): ArchivedArticle[] => {
+    if (memoryCache.archive) return memoryCache.archive; 
+
     const stored = localStorage.getItem(STORAGE_KEYS.ARCHIVE);
-    if (!stored) return [];
+    if (!stored) {
+        memoryCache.archive = [];
+        return [];
+    }
     
     try {
         const decompressed = LZString.decompressFromUTF16(stored);
         if (decompressed) {
-            return JSON.parse(decompressed);
+            const parsed = JSON.parse(decompressed);
+            memoryCache.archive = parsed;
+            return parsed;
         } else {
-            return JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            memoryCache.archive = parsed;
+            return parsed;
         }
     } catch (e) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        memoryCache.archive = parsed;
+        return parsed;
     }
 };
 
 export const saveArchivedArticlesToLocal = (archived: ArchivedArticle[]): void => {
+    memoryCache.archive = archived; 
     let currentArchive = [...archived];
     let saved = false;
     while (!saved && currentArchive.length > 0) {
@@ -265,6 +294,7 @@ export const saveArchivedArticlesToLocal = (archived: ArchivedArticle[]): void =
     
     if (currentArchive.length < archived.length) {
         console.warn(`Dropped ${archived.length - currentArchive.length} archived articles from local storage due to quota.`);
+        memoryCache.archive = currentArchive; 
     }
 };
 
@@ -290,14 +320,12 @@ export const deleteArticle = (id: string, userId: string = 'system'): void => {
   const articleToArchive = articles.find((a) => String(a.id) === String(id));
   
   if (articleToArchive) {
-      // 1. Crear registro de archivo completo
       const archived: ArchivedArticle = {
           ...articleToArchive,
           archivedAt: new Date().toISOString(),
           archivedBy: userId
       };
 
-      // 2. Guardar en historial
       const archive = getArchivedArticles();
       const existingArchiveIndex = archive.findIndex(a => String(a.id) === String(id));
       if (existingArchiveIndex >= 0) {
@@ -308,7 +336,6 @@ export const deleteArticle = (id: string, userId: string = 'system'): void => {
       
       saveArchivedArticlesToLocal(archive);
 
-      // 3. Eliminar de la lista activa
       const newArticles = articles.filter((a) => String(a.id) !== String(id));
       saveArticlesToLocal(newArticles);
       
@@ -321,32 +348,28 @@ export const restoreArticle = (id: string, skipSync = false): boolean => {
     const articleToRestore = archive.find(a => String(a.id) === String(id));
 
     if (articleToRestore) {
-        // 1. Reconstruir el artículo activo con TODOS los campos
         const activeArticle: Article = {
             id: String(articleToRestore.id), 
             title: articleToRestore.title,
             summary: articleToRestore.summary,
             content: articleToRestore.content,
             imageUrl: articleToRestore.imageUrl,
-            imageCaption: articleToRestore.imageCaption || '', // Asegurar campo
-            photoCredit: articleToRestore.photoCredit || '',   // Asegurar campo
+            imageCaption: articleToRestore.imageCaption || '', 
+            photoCredit: articleToRestore.photoCredit || '',   
             contentImages: articleToRestore.contentImages || [],
             category: articleToRestore.category,
             authorId: String(articleToRestore.authorId), 
             date: articleToRestore.date,
-            isPublished: false, // Al restaurar, vuelve como borrador para revisión
+            isPublished: false, 
             
-            // Campos opcionales de crónicas
             bullfightLocation: articleToRestore.bullfightLocation || '',
             bullfightCattle: articleToRestore.bullfightCattle || '',
             bullfightSummary: articleToRestore.bullfightSummary || '',
             bullfightResults: articleToRestore.bullfightResults || []
         };
 
-        // 2. Guardar en activos (local)
-        saveArticle(activeArticle, true); // true = skip autoSync inmediato, lo haremos al final
+        saveArticle(activeArticle, true);
 
-        // 3. Quitar del archivo (local)
         const newArchive = archive.filter(a => String(a.id) !== String(id));
         saveArchivedArticlesToLocal(newArchive);
         
