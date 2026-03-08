@@ -3,7 +3,7 @@ import { getArticles, deleteArticle, getAuthors, saveArticle, stopAutoSync, getA
 import { syncWithGitHub } from '../services/githubService';
 import { Article, Category, Author, ArchivedArticle } from '../types';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Trash2, Edit2, Filter, AlertCircle, X, CheckCircle, Clock, CloudUpload, Loader2, EyeOff, Archive, RefreshCcw, ShieldAlert, Eye } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Filter, AlertCircle, X, CheckCircle, Clock, CloudUpload, Loader2, EyeOff, Archive, RefreshCcw, ShieldAlert, Eye, Pin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import PreviewModal from '../components/PreviewModal';
 
@@ -73,6 +73,30 @@ const ArticlesList: React.FC = () => {
           }).finally(() => setIsSyncing(false));
       } catch (error: any) { alert("❌ Error de conexión."); }
   };
+
+  // --- SISTEMA PARA FIJAR NOTICIAS ---
+  const handleTogglePin = async (article: Article) => {
+      const isCurrentlyPinned = article.isPinned;
+      
+      if (isCurrentlyPinned) {
+          if (!window.confirm(`¿Estás seguro de que quieres DESFIJAR "${article.title}"? Dejará de aparecer fijada en la parte superior.`)) return;
+      } else {
+          if (!window.confirm(`¿Quieres FIJAR "${article.title}"? Aparecerá anclada en la parte superior de la página web.`)) return;
+      }
+      
+      try {
+          const updatedArticle = { ...article, isPinned: !isCurrentlyPinned };
+          saveArticle(updatedArticle, true);
+          setIsSyncing(true);
+          syncWithGitHub(true).then(result => {
+              if (result.success) setPendingChanges(0);
+              else {
+                  alert("⚠️ Se cambió localmente, pero falló la subida a la web: " + result.message);
+                  setPendingChanges(prev => prev + 1);
+              }
+          }).finally(() => setIsSyncing(false));
+      } catch (error: any) { alert("❌ Error al modificar la noticia."); }
+  };
   
   const handleRestore = async (id: string) => {
       if(!window.confirm("¿Restaurar esta noticia? Volverá a la lista de borradores activos.")) return;
@@ -131,7 +155,14 @@ const ArticlesList: React.FC = () => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (article.summary || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
-  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }).sort((a, b) => {
+      // 1. Las noticias fijadas siempre van arriba
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // 2. Luego se ordena por fecha normal
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 
   const paginatedList = filteredList.slice(0, currentPage * ITEMS_PER_PAGE);
   const hasMore = paginatedList.length < filteredList.length;
@@ -246,8 +277,11 @@ const ArticlesList: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button onClick={() => setPreviewArticle(article)} className="p-2 text-gray-600 bg-gray-100 rounded-lg"><Eye size={16} /></button>
                                     {viewMode === 'active' && (
-                                        <><Link to={`/editar-noticia/${article.id}`} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Edit2 size={16} /></Link>
-                                        <button onClick={() => promptDelete(article.id, article.title)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 size={16} /></button></>
+                                        <>
+                                        <button onClick={(e) => { e.stopPropagation(); handleTogglePin(article); }} className={`p-2 rounded-lg ${article.isPinned ? 'text-white bg-blue-600' : 'text-blue-600 bg-blue-50'}`}><Pin size={16} /></button>
+                                        <Link to={`/editar-noticia/${article.id}`} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Edit2 size={16} /></Link>
+                                        <button onClick={(e) => { e.stopPropagation(); promptDelete(article.id, article.title); }} className="p-2 text-red-600 bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                                        </>
                                     )}
                                     {viewMode === 'history' && (
                                         <button onClick={() => handleRestore(article.id)} className="p-2 text-blue-600 bg-blue-50 rounded-lg flex items-center gap-1 text-xs font-bold"><RefreshCcw size={14} /> Restaurar</button>
@@ -315,14 +349,12 @@ const ArticlesList: React.FC = () => {
                         <div className="flex items-center justify-end gap-2">
                           {viewMode === 'active' && (
                               <>
-                                {!article.isPublished && <button onClick={() => handleApprove(article)} className="p-2 text-yellow-600 bg-yellow-50 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors border border-yellow-100"><CheckCircle size={18} /></button>}
-                                {article.isPublished && <button onClick={() => handleUnpublish(article)} className="p-2 text-gray-400 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors border border-transparent hover:border-orange-100"><EyeOff size={18} /></button>}
-                                <button onClick={() => setPreviewArticle(article)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"><Eye size={18} /></button>
-                                <Link to={`/editar-noticia/${article.id}`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 size={18} /></Link>
-                                <button onClick={(e) => { 
-    e.stopPropagation(); 
-    handleDelete(article.id); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} />
-</button>
+                                <button onClick={(e) => { e.stopPropagation(); handleTogglePin(article); }} className={`p-2 rounded-lg transition-colors border ${article.isPinned ? 'text-white bg-blue-600 border-blue-600 hover:bg-blue-700' : 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100'}`} title={article.isPinned ? 'Desfijar' : 'Fijar'}><Pin size={18} /></button>
+                                {!article.isPublished && <button onClick={(e) => { e.stopPropagation(); handleApprove(article); }} className="p-2 text-yellow-600 bg-yellow-50 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors border border-yellow-100"><CheckCircle size={18} /></button>}
+                                {article.isPublished && <button onClick={(e) => { e.stopPropagation(); handleUnpublish(article); }} className="p-2 text-gray-400 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors border border-transparent hover:border-orange-100"><EyeOff size={18} /></button>}
+                                <button onClick={(e) => { e.stopPropagation(); setPreviewArticle(article); }} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"><Eye size={18} /></button>
+                                <Link onClick={(e) => e.stopPropagation()} to={`/editar-noticia/${article.id}`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 size={18} /></Link>
+                                <button onClick={(e) => { e.stopPropagation(); promptDelete(article.id, article.title); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
                               </>
                           )}
                           {viewMode === 'history' && (
