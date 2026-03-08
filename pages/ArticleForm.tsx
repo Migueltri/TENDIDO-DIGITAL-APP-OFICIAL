@@ -111,18 +111,26 @@ const ArticleForm: React.FC = () => {
       }
   };
 
+  // --- SISTEMA DE RECORTE PARA IMAGEN PRINCIPAL (TITULAR) ---
+  const [mainImageToCrop, setMainImageToCrop] = useState<string | null>(null);
+
   const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLoadingImage(true);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      try {
-        const compressedBase64 = await compressImage(file, 1200, 0.85);
-        setFormData(prev => ({ ...prev, imageUrl: compressedBase64 }));
-        setFormIsDirty(true);
-      } catch (err) { alert("Error procesando imagen: " + err); } 
-      finally { setLoadingImage(false); }
+      // En lugar de guardar directo, abrimos el recortador
+      setMainImageToCrop(URL.createObjectURL(file));
+      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
     }
+  };
+
+  const handleMainCropDone = (base64Image: string) => {
+    setFormData(prev => ({ ...prev, imageUrl: base64Image }));
+    setFormIsDirty(true);
+    setMainImageToCrop(null);
+  };
+
+  const handleMainCropCancel = () => {
+    setMainImageToCrop(null);
   };
 
   // --- NUEVO SISTEMA DE COLA PARA RECORTAR GALERÍA ---
@@ -311,7 +319,16 @@ const ArticleForm: React.FC = () => {
         {draftRecovered && <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">Borrador recuperado</span>}
       </div>
 
-      {/* MODAL DE RECORTE ACTIVO */}
+      {/* MODAL DE RECORTE: IMAGEN DEL TITULAR */}
+      {mainImageToCrop && (
+        <ImageCropper 
+          imageSrc={mainImageToCrop} 
+          onCropDone={handleMainCropDone} 
+          onCancel={handleMainCropCancel} 
+        />
+      )}
+
+      {/* MODAL DE RECORTE: GALERÍA (El que pusiste antes) */}
       {isCroppingGallery && pendingCrops.length > 0 && (
         <ImageCropper 
           imageSrc={pendingCrops[0]} 
