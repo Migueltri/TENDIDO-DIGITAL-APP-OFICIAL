@@ -260,21 +260,3 @@ export const restoreArticle = (id: string, skipSync = false): boolean => {
     }
     return false;
 };
-
-// Al final de src/services/dataService.ts
-// import backupData from '../../backup.json';
-
-// export const injectBackup = () => {
- // try {
-   //   if (backupData && backupData.articles) {
-     //   localStorage.setItem('articles', JSON.stringify(backupData.articles));
-   //     localStorage.setItem('authors', JSON.stringify(backupData.authors || []));
-   //     localStorage.setItem('archivedArticles', JSON.stringify(backupData.archivedArticles || []));
-  //      return true;
-   //   }
- //     return false;
- //   } catch (e) {
- //     console.error("Error inyectando:", e);
- //     return false;
- //   }
- // };
