@@ -266,22 +266,15 @@ import backupData from '../../backup.json';
 
 export const injectBackup = () => {
   try {
-    // Verificamos qué trae el backup
-    const articles = backupData.articles || [];
-    const authors = backupData.authors || [];
-    const archived = backupData.archivedArticles || [];
-
-    if (articles.length > 0) {
-      localStorage.setItem('articles', JSON.stringify(articles));
-      localStorage.setItem('authors', JSON.stringify(authors));
-      localStorage.setItem('archivedArticles', JSON.stringify(archived));
-      
-      console.log("Inyección completada localmente");
+    if (backupData && backupData.articles) {
+      localStorage.setItem('articles', JSON.stringify(backupData.articles));
+      localStorage.setItem('authors', JSON.stringify(backupData.authors || []));
+      localStorage.setItem('archivedArticles', JSON.stringify(backupData.archivedArticles || []));
       return true;
     }
     return false;
-  } catch (error) {
-    console.error("Error en la inyección:", error);
+  } catch (e) {
+    console.error("Error inyectando:", e);
     return false;
   }
 };
