@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
@@ -12,6 +11,17 @@ import Home from './src/pages/home/page';
 import { AuthProvider } from './contexts/AuthContext';
 import { triggerCloudSync, setSyncCallback } from './services/dataService';
 import { syncWithGitHub } from './services/githubService';
+
+import { useEffect } from 'react';
+import { injectBackup } from './services/dataService';
+
+// ... dentro de tu componente principal ...
+useEffect(() => {
+  const rescatado = injectBackup();
+  if (rescatado) {
+    alert("¡Noticias recuperadas en el navegador! Ahora ve a Configuración y pulsa 'Sincronizar' para guardarlas en GitHub.");
+  }
+}, []);
 
 // Componente auxiliar para manejar la persistencia de navegación y el auto-guardado global
 const AppStateHandler: React.FC = () => {
