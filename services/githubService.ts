@@ -61,6 +61,30 @@ interface DatabaseSchema {
   lastUpdated: string;
 }
 
+// --- UTILIDADES DE CODIFICACIÓN (Deben ir arriba) ---
+
+const encodeBase64 = async (str: string): Promise<string> => {
+    const bytes = new TextEncoder().encode(str);
+    const blob = new Blob([bytes]);
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            resolve(dataUrl.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+};
+
+const decodeBase64 = async (b64: string): Promise<string> => {
+    const url = `data:application/json;base64,${b64}`;
+    const response = await fetch(url);
+    return await response.text();
+};
+
+// ---------------------------------------------------
+
 const fetchRemoteDB = async (settings: AppSettings): Promise<{ sha: string, data: DatabaseSchema } | null> => {
     if (!settings.githubToken || !settings.repoOwner || !settings.repoName) return null;
 
@@ -209,20 +233,6 @@ const executeWithRetry = async (
             }
         }
     }
-};
-
-const encodeBase64 = async (str: string): Promise<string> => {
-    const bytes = new TextEncoder().encode(str);
-    const blob = new Blob([bytes]);
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-            resolve(dataUrl.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
 };
 
 const pushToGitHub = async (settings: AppSettings, data: DatabaseSchema, sha: string, message: string) => {
