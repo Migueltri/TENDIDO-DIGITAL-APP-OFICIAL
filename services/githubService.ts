@@ -61,19 +61,16 @@ interface DatabaseSchema {
   lastUpdated: string;
 }
 
-// 🔥 OPTIMIZACIÓN EXTREMA: Usamos FileReader nativo en lugar de bucles lentos
+// 🔥 NUEVA OPTIMIZACIÓN: Bucle por bloques (Evita el límite de memoria del navegador)
 const encodeBase64 = async (str: string): Promise<string> => {
     const bytes = new TextEncoder().encode(str);
-    const blob = new Blob([bytes]);
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-            resolve(dataUrl.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = Array.from(bytes.subarray(i, i + chunkSize));
+        binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
 };
 
 // 🔥 OPTIMIZACIÓN EXTREMA: Usamos fetch nativo para decodificar al instante
@@ -252,7 +249,10 @@ const pushToGitHub = async (settings: AppSettings, data: DatabaseSchema, sha: st
         body: JSON.stringify(body)
     });
 
-    if (!putRes.ok) throw new Error(`Error ${putRes.status}: ${putRes.statusText}`);
+    if (!putRes.ok) {
+        const errData = await putRes.json().catch(() => ({}));
+        throw new Error(`${putRes.status} - ${errData.message || putRes.statusText}`);
+    }
     return true;
 };
 
@@ -390,9 +390,8 @@ export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ succ
                 remoteDB.lastUpdated = new Date().toISOString();
                 
                 const publishedArticles = remoteDB.articles.filter(a => a.isPublished);
-                const titles = publishedArticles.map(a => `- ${a.title}`).join('\n');
                 const commitMessage = forcePush 
-                    ? `🚀 Publicación Web: ${publishedArticles.length} noticias activas\n\nNoticias publicadas:\n${titles}`
+                    ? `🚀 Publicación Web: ${publishedArticles.length} noticias activas actualizadas`
                     : '🔄 Sync Automático: Guardado de seguridad';
 
                 await pushToGitHub(settings, remoteDB, sha, commitMessage);
