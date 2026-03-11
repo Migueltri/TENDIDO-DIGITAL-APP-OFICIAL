@@ -1,51 +1,48 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const fs = require('fs');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const backupPath = 'public/backup.json';
+const backupPath = './backup.json';
 const outputPath = './db_ligero.json';
 const imagesDir = path.join(__dirname, 'public/images/noticias');
 
-// 1. Verificar si existe el backup
-if (!fs.existsSync(backupPath)) {
-    console.error("❌ ERROR: No encuentro el archivo backup.json en la raíz.");
-    process.exit(1);
-}
+if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
-// 2. Crear carpeta de imágenes si no existe
-if (!fs.existsSync(imagesDir)) {
-    fs.mkdirSync(imagesDir, { recursive: true });
-}
+const rawData = fs.readFileSync(backupPath, 'utf8');
+const data = JSON.parse(rawData);
 
-const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-console.log(`🚀 Procesando ${data.articles.length} noticias...`);
+console.log(`🧐 Analizando ${data.articles.length} noticias...`);
+
+let imagenesExtraidas = 0;
 
 data.articles = data.articles.map((article, index) => {
-    if (article.image && article.image.startsWith('data:image')) {
+    // Si la propiedad image existe y es un texto muy largo (más de 100 caracteres)
+    if (article.image && article.image.length > 100) {
         try {
-            const extension = article.image.split(';')[0].split('/')[1] || 'jpg';
-            const fileName = `noticia-${article.id || index}.${extension}`;
+            // Generamos un nombre único
+            const fileName = `noticia-${article.id || index}.jpg`;
             const filePath = path.join(imagesDir, fileName);
 
+            // Limpiamos el prefijo Base64 si existe, si no, lo tomamos tal cual
             const base64Data = article.image.replace(/^data:image\/\w+;base64,/, "");
+            
+            // Escribimos el archivo físico
             fs.writeFileSync(filePath, base64Data, 'base64');
 
-            // Cambiamos la imagen pesada por la ruta local
+            // SUSTITUIMOS EL TEXTO POR LA RUTA (Esto es lo que reduce el peso)
             article.image = `/images/noticias/${fileName}`;
+            imagenesExtraidas++;
         } catch (err) {
-            console.error(`⚠️ Error con la imagen de la noticia ${index}:`, err.message);
+            console.error(`❌ Error en noticia ${index}:`, err.message);
         }
     }
     return article;
 });
 
-// 3. Guardar el archivo final
-fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
+// Guardamos el JSON (esta vez sin espacios innecesarios para que pese menos aún)
+fs.writeFileSync(outputPath, JSON.stringify(data));
 
 console.log("----------------------------------------------");
-console.log("✅ ¡ÉXITO! Archivo 'db_ligero.json' creado.");
-console.log(`📁 Imágenes guardadas en: ${imagesDir}`);
+console.log(`✅ ¡OPERACIÓN COMPLETADA!`);
+console.log(`📸 Imágenes convertidas a archivos: ${imagenesExtraidas}`);
+console.log(`💾 Nuevo peso estimado: ${Math.round(fs.statSync(outputPath).size / 1024)} KB`);
 console.log("----------------------------------------------");
