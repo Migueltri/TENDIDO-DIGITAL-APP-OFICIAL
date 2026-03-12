@@ -83,9 +83,9 @@ export default function Home() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Try to fetch from GitHub directly to bypass Vercel build/cache issues
-        const githubUrl = `https://raw.githubusercontent.com/migueltri/tendido-digital-cms/main/public/data/dataDB.json?t=${Date.now()}`;
-        let response = await fetch(githubUrl);
+       // Solución: Leer directamente desde el despliegue del CMS en Vercel (bypasea la privacidad de GitHub)
+        const cmsUrl = `https://tendido-digital-cms.vercel.app/data/dataDB.json?t=${Date.now()}`;
+        let response = await fetch(cmsUrl);
         
         if (!response.ok) {
             // Fallback to local file if GitHub fetch fails
