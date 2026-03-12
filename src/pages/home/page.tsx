@@ -84,12 +84,12 @@ export default function Home() {
     const loadData = async () => {
       try {
         // Try to fetch from GitHub directly to bypass Vercel build/cache issues
-        const githubUrl = `https://raw.githubusercontent.com/MiguelTro/Tendido-Digital/main/public/data/db.json?t=${Date.now()}`;
+        const githubUrl = `https://raw.githubusercontent.com/migueltri/tendido-digital-cms/main/public/data/dataDB.json?t=${Date.now()}`;
         let response = await fetch(githubUrl);
         
         if (!response.ok) {
             // Fallback to local file if GitHub fetch fails
-            response = await fetch(`/data/db.json?t=${Date.now()}`);
+            response = await fetch(`/data/dataDB.json?t=${Date.now()}`);
         }
         
         if (!response.ok) {
