@@ -201,7 +201,12 @@ export const verifyConnection = async (): Promise<{ success: boolean; message: s
 
         const db = await fetchRemoteDB(updatedSettings);
         if (db) {
-            return { success: true, message: `✅ Conectado. ${db.data.articles?.length || 0} noticias online.` };
+            // DESCARGA REAL: Guardar los datos de GitHub en la interfaz de la App
+            if (db.data.articles) saveArticlesToLocal(db.data.articles);
+            if (db.data.authors) saveAuthorsToLocal(db.data.authors);
+            if (db.data.archivedArticles) saveArchivedArticlesToLocal(db.data.archivedArticles);
+            
+            return { success: true, message: `✅ Conectado y sincronizado. ${db.data.articles?.length || 0} noticias online.` };
         } else {
             return { success: true, message: `✅ Repositorio detectado. Archivo de base de datos listo para crearse.` };
         }
