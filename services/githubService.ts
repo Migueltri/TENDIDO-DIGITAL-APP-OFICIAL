@@ -7,10 +7,8 @@ export const getSettings = (): AppSettings => {
   const stored = localStorage.getItem(SETTINGS_KEY);
   const settings = stored ? JSON.parse(stored) : {};
   
-  let filePath = settings.filePath || 'public/data/db.json';
-  if (filePath === 'public/dataDB.json') {
-      filePath = 'public/data/db.json';
-  }
+  // CORRECCIÓN: Eliminamos la condición ilógica y fijamos dataDB.json
+  let filePath = settings.filePath || 'public/data/dataDB.json';
   
   if (
       settings.repoName === 'Tendido-Digital' || 
@@ -330,7 +328,12 @@ export const processArticleImages = async (article: Article, settings: any) => {
 };
 
 export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ success: boolean; message: string }> => {
-    return;
+    // CORRECCIÓN: Si no es un guardado forzado (manual), abortamos la operación.
+    // Esto mata el bucle automático sin romper TypeScript ni el botón de publicar.
+    if (!forcePush) {
+        return { success: true, message: 'Sincronización automática ignorada por seguridad.' };
+    }
+
     const settings = getSettings();
     if (!settings.githubToken) return { success: false, message: 'Modo Local.' };
 
@@ -346,9 +349,7 @@ export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ succ
             remoteDB.lastUpdated = new Date().toISOString();
 
             const publishedArticles = remoteDB.articles.filter(a => a.isPublished);
-            const commitMessage = forcePush 
-                ? `🚀 Publicación Web: ${publishedArticles.length} noticias activas`
-                : '🔄 Sync Automático';
+            const commitMessage = `🚀 Publicación Web: ${publishedArticles.length} noticias activas`;
 
             await pushToGitHub(settings, remoteDB, sha, commitMessage);
             
