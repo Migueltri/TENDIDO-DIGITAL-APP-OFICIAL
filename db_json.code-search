@@ -1,0 +1,54 @@
+# Query: db.json
+# ContextLines: 1
+
+13 resultados - Archivos de 4
+
+adelgazar.cjs:
+  3  
+  4: const dbPath = './public/data/dataDB.json';
+  5  
+
+  7      if (!fs.existsSync(dbPath)) {
+  8:         console.error("❌ No existe dataDB.json");
+  9          process.exit(1);
+
+pages/Settings.tsx:
+   10      repoName: 'tendido-digital-cms',
+   11:     filePath: 'public/data/dataDB.json',
+   12      repoBranch: 'main',
+
+   60      if (!settings.filePath.endsWith('.json')) {
+   61:         alert("Error: El archivo debe terminar en .json (normalmente public/data/dataDB.json)");
+   62          return;
+
+  157                    
+  158:                   {/* BOTÓN DE EMERGENCIA PARA DESCARGAR DB.JSON */}
+  159                    <div className="mt-2 pt-3 border-t border-gray-200">
+
+  174                                    a.href = url;
+  175:                                   a.download = 'dataDB.json';
+  176                                    document.body.appendChild(a);
+
+  183                        >
+  184:                           <ArrowDown size={16} /> Descargar mis noticias (dataDB.json)
+  185                        </button>
+
+services/githubService.ts:
+   9    
+  10:   let filePath = settings.filePath || 'public/data/dataDB.json';
+  11:   if (filePath === 'public/dataDB.json') {
+  12:       filePath = 'public/data/dataDB.json';
+  13    }
+
+src/pages/home/page.tsx:
+  86          // Try to fetch from GitHub directly to bypass Vercel build/cache issues
+  87:         const githubUrl = `https://raw.githubusercontent.com/MiguelTro/Tendido-Digital/main/public/data/dataDB.json?t=${Date.now()}`;
+  88          let response = await fetch(githubUrl);
+
+  91              // Fallback to local file if GitHub fetch fails
+  92:             response = await fetch(`/data/dataDB.json?t=${Date.now()}`);
+  93          }
+
+  95          if (!response.ok) {
+  96:            console.warn("No se pudo cargar dataDB.json, usando datos estáticos.");
+  97             setCombinedNews(latestNews);
