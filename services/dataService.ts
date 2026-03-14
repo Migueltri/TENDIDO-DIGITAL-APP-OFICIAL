@@ -283,30 +283,3 @@ export const restoreArticle = (id: string): boolean => {
     saveToLocal(); // Guardamos los cambios localmente
     return true;
 };
-
-export const restoreArticle = (id: string, skipSync = false): boolean => {
-    const archive = getArchivedArticles();
-    const articleToRestore = archive.find(a => String(a.id) === String(id));
-
-    if (articleToRestore) {
-        const activeArticle: Article = {
-            id: String(articleToRestore.id), title: articleToRestore.title, summary: articleToRestore.summary,
-            content: articleToRestore.content, imageUrl: articleToRestore.imageUrl, imageCaption: articleToRestore.imageCaption || '', 
-            photoCredit: articleToRestore.photoCredit || '', contentImages: articleToRestore.contentImages || [],
-            category: articleToRestore.category, authorId: String(articleToRestore.authorId), date: articleToRestore.date,
-            isPublished: false, bullfightLocation: articleToRestore.bullfightLocation || '', bullfightCattle: articleToRestore.bullfightCattle || '',
-            bullfightSummary: articleToRestore.bullfightSummary || '', bullfightResults: articleToRestore.bullfightResults || []
-        };
-        const articles = [...getArticles()];
-        articles.unshift(activeArticle);
-        saveArticlesToLocal(articles);
-        
-        const newArchive = archive.filter(a => String(a.id) !== String(id));
-        saveArchivedArticlesToLocal(newArchive);
-        
-        notifyListeners();
-        if (!skipSync) triggerCloudSync();
-        return true;
-    }
-    return false;
-};
