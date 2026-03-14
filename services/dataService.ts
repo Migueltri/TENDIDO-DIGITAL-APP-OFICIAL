@@ -221,34 +221,27 @@ export const archiveArticle = (id: string, authorId: string): boolean => {
     // Buscamos la noticia en la lista activa
     const articleIndex = articles.findIndex(a => a.id === id);
     if (articleIndex === -1) {
-        console.warn(`[dataService] archiveArticle: No se encontró la noticia con ID ${id} en la lista activa.`);
+        console.warn(`[dataService] archiveArticle: No se encontró la noticia con ID ${id}`);
         return false;
     }
 
     // Obtenemos la noticia
     const articleToArchive = articles[articleIndex];
     
-    // Verificamos permisos (solo admin o el propio autor)
-    const canArchive = currentUser?.role === 'admin' || currentUser?.id === articleToArchive.authorId;
-    if (!canArchive) {
-        console.warn(`[dataService] archiveArticle: No tienes permisos para archivar esta noticia.`);
-        return false;
-    }
-
-    // La marcamos como no publicada
+    // Guardamos su estado original y la forzamos a borrador
+    const originalStatus = articleToArchive.isPublished ? 'published' : 'draft';
     articleToArchive.isPublished = false;
     
     // La añadimos al historial con metadatos extra
     archivedArticles = [{
         ...articleToArchive,
-        archivedAt: new Date().toISOString(), // Guardamos CUÁNDO se borró
-        originalStatus: articleToArchive.isPublished ? 'published' : 'draft' // Guardamos cómo estaba antes
+        archivedAt: new Date().toISOString(),
+        originalStatus: originalStatus
     }, ...archivedArticles];
 
     // La eliminamos de la lista activa
     articles = articles.filter(a => a.id !== id);
     
-    console.log(`[dataService] Noticia "${articleToArchive.title}" movida al historial.`);
     saveToLocal(); // Guardamos los cambios localmente
     return true;
 };
