@@ -214,24 +214,74 @@ export const saveArticle = (article: Article, skipSync = false): void => {
   if (!skipSync) triggerCloudSync();
 };
 
-export const deleteArticle = (id: string, userId: string = 'system'): void => {
-  const articles = getArticles();
-  const articleToArchive = articles.find((a) => String(a.id) === String(id));
-  
-  if (articleToArchive) {
-      const archived: ArchivedArticle = { ...articleToArchive, archivedAt: new Date().toISOString(), archivedBy: userId };
-      const archive = [...getArchivedArticles()];
-      const existingArchiveIndex = archive.findIndex(a => String(a.id) === String(id));
-      if (existingArchiveIndex >= 0) archive[existingArchiveIndex] = archived;
-      else archive.unshift(archived);
-      
-      saveArchivedArticlesToLocal(archive);
-      const newArticles = articles.filter((a) => String(a.id) !== String(id));
-      saveArticlesToLocal(newArticles);
-      
-      notifyListeners();
-      triggerCloudSync();
-  }
+// --- SISTEMA DE ARCHIVADO DE NOTICIAS ---
+
+// 1. Función para mover una noticia activa al historial (Archivar)
+export const archiveArticle = (id: string, authorId: string): boolean => {
+    // Buscamos la noticia en la lista activa
+    const articleIndex = articles.findIndex(a => a.id === id);
+    if (articleIndex === -1) {
+        console.warn(`[dataService] archiveArticle: No se encontró la noticia con ID ${id} en la lista activa.`);
+        return false;
+    }
+
+    // Obtenemos la noticia
+    const articleToArchive = articles[articleIndex];
+    
+    // Verificamos permisos (solo admin o el propio autor)
+    const canArchive = currentUser?.role === 'admin' || currentUser?.id === articleToArchive.authorId;
+    if (!canArchive) {
+        console.warn(`[dataService] archiveArticle: No tienes permisos para archivar esta noticia.`);
+        return false;
+    }
+
+    // La marcamos como no publicada
+    articleToArchive.isPublished = false;
+    
+    // La añadimos al historial con metadatos extra
+    archivedArticles = [{
+        ...articleToArchive,
+        archivedAt: new Date().toISOString(), // Guardamos CUÁNDO se borró
+        originalStatus: articleToArchive.isPublished ? 'published' : 'draft' // Guardamos cómo estaba antes
+    }, ...archivedArticles];
+
+    // La eliminamos de la lista activa
+    articles = articles.filter(a => a.id !== id);
+    
+    console.log(`[dataService] Noticia "${articleToArchive.title}" movida al historial.`);
+    saveToLocal(); // Guardamos los cambios localmente
+    return true;
+};
+
+// 2. Función para mover una noticia del historial de vuelta a borradores (Restaurar)
+export const restoreArticle = (id: string): boolean => {
+    // Buscamos la noticia en el historial
+    const archivedIndex = archivedArticles.findIndex(a => a.id === id);
+    if (archivedIndex === -1) {
+        console.warn(`[dataService] restoreArticle: No se encontró la noticia con ID ${id} en el historial.`);
+        return false;
+    }
+
+    // Obtenemos la noticia del historial
+    const articleToRestore = archivedArticles[archivedIndex];
+    
+    // Eliminamos los metadatos de archivado
+    delete (articleToRestore as any).archivedAt;
+    delete (articleToRestore as any).originalStatus;
+
+    // La devolvemos a la lista activa como BORRADOR (no publicada)
+    articles = [{
+        ...articleToRestore,
+        isPublished: false, // Forzamos borrador por seguridad
+        lastModified: new Date().toISOString() // Marcamos como modificada
+    }, ...articles];
+
+    // La eliminamos del historial
+    archivedArticles = archivedArticles.filter(a => a.id !== id);
+
+    console.log(`[dataService] Noticia "${articleToRestore.title}" restaurada como borrador.`);
+    saveToLocal(); // Guardamos los cambios localmente
+    return true;
 };
 
 export const restoreArticle = (id: string, skipSync = false): boolean => {
