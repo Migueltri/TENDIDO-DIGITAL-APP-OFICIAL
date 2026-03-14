@@ -243,23 +243,32 @@ const ArticleForm: React.FC = () => {
     setFormIsDirty(true);
 };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-      // Analizamos si lo que están pegando contiene un archivo de imagen
-      const items = e.clipboardData?.items;
-      let hasImage = false;
-      if (items) {
-          for (let i = 0; i < items.length; i++) {
-              if (items[i].type.indexOf('image') !== -1) {
-                  hasImage = true;
-                  break;
-              }
+// --- PARCHE DE EMERGENCIA: BLOQUEO DE IMÁGENES INLINE (Base64) ---
+  
+  // Función auxiliar para detectar imágenes en eventos
+  const isImageTransfer = (data: DataTransfer | null) => {
+      if (!data?.items) return false;
+      for (let i = 0; i < data.items.length; i++) {
+          if (data.items[i].type.indexOf('image') !== -1) {
+              return true;
           }
       }
-      
-      // Si es una imagen, bloqueamos la acción y avisamos
-      if (hasImage) {
+      return false;
+  };
+
+  // 1. Manejador de Pegado (onPaste - Ctrl+V)
+  const handlePaste = (e: React.ClipboardEvent) => {
+      if (isImageTransfer(e.clipboardData)) {
           e.preventDefault();
-          alert("❌ ERROR: No puedes pegar fotos directamente en el texto.\n\nEsto satura la base de datos y puede tumbar la web. Por favor, sube las fotos usando el botón 'Añadir Fotos' en la sección de Galería de arriba.");
+          alert("❌ ERROR: No puedes pegar fotos directamente en el texto.\n\nEsto satura la base de datos y tumbará la web. Por favor, sube las fotos usando el botón 'Añadir Fotos' en la sección de Galería.");
+      }
+  };
+
+  // 2. Manejador de Arrastre (onDrop)
+  const handleDrop = (e: React.DragEvent) => {
+      if (isImageTransfer(e.dataTransfer)) {
+          e.preventDefault();
+          alert("❌ ERROR: No puedes arrastrar fotos directamente al texto.\n\nEsto satura la base de datos y tumbará la web. Por favor, sube las fotos usando el botón 'Añadir Fotos' en la sección de Galería.");
       }
   };
 
@@ -496,13 +505,13 @@ const ArticleForm: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-2">
+       <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">Contenido de la Noticia</label>
           <div className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand-red/20 focus-within:border-brand-red bg-white ${isSubmitting ? 'border-gray-200 opacity-70 pointer-events-none' : 'border-gray-200'}`}>
               <div className="flex items-center gap-1 p-2 border-b border-gray-100 bg-gray-50">
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('bold')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Bold size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('italic')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Italic size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('insertUnorderedList')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><List size={18} /></button><div className="w-px h-6 bg-gray-300 mx-1"></div><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleLink} className="p-2 hover:bg-gray-200 rounded text-gray-700"><LinkIcon size={18} /></button>
               </div>
-              <div ref={editorRef} contentEditable={!isSubmitting} suppressContentEditableWarning onPaste={handlePaste} className="w-full p-4 min-h-[300px] outline-none font-serif text-gray-800 leading-relaxed overflow-y-auto text-lg prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800" onBlur={() => setFormIsDirty(true)} style={{ minHeight: '300px' }} />
+              <div ref={editorRef} contentEditable={!isSubmitting} suppressContentEditableWarning onPaste={handlePaste} onDrop={handleDrop} className="w-full p-4 min-h-[300px] outline-none font-serif text-gray-800 leading-relaxed overflow-y-auto text-lg prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800" onBlur={() => setFormIsDirty(true)} style={{ minHeight: '300px' }} />
           </div>
         </div>
 
