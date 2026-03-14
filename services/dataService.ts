@@ -216,31 +216,38 @@ export const saveArticle = (article: Article, skipSync = false): void => {
 
 // --- SISTEMA DE ARCHIVADO DE NOTICIAS ---
 
+// --- SISTEMA DE ARCHIVADO DE NOTICIAS ---
+
 export const archiveArticle = (id: string, authorId: string): boolean => {
     try {
-        // 1. Usamos TUS funciones oficiales para acceder a la memoria de forma segura
-        const listaActivas = getArticles();
-        const listaHistorial = getArchivedArticles();
+        // 1. Hacemos copias seguras de los datos actuales
+        const currentArticles = [...getArticles()];
+        const currentArchive = [...getArchivedArticles()];
 
         // 2. Buscamos la noticia exacta
-        const articleIndex = listaActivas.findIndex((a: any) => String(a.id) === String(id));
+        const articleIndex = currentArticles.findIndex((a) => String(a.id) === String(id));
         if (articleIndex === -1) throw new Error("No se encontró la noticia a borrar");
 
-        const articleToArchive = listaActivas[articleIndex];
+        const articleToArchive = currentArticles[articleIndex];
         const originalStatus = articleToArchive.isPublished ? 'published' : 'draft';
 
-        // 3. Inyectamos la noticia al principio del historial
-        listaHistorial.unshift({
+        // 3. Añadimos al historial
+        currentArchive.unshift({
             ...articleToArchive,
             isPublished: false,
             archivedAt: new Date().toISOString(),
             originalStatus: originalStatus
-        });
+        } as ArchivedArticle);
 
-        // 4. Eliminamos la noticia de la lista de activas
-        listaActivas.splice(articleIndex, 1);
+        // 4. Eliminamos de activas
+        currentArticles.splice(articleIndex, 1);
 
-        console.log("Noticia enviada al historial correctamente.");
+        // 5. GRABADO OFICIAL: Guardamos en memoria profunda y base de datos local
+        saveArticlesToLocal(currentArticles);
+        saveArchivedArticlesToLocal(currentArchive);
+        notifyListeners(); // Refresca la pantalla al instante
+
+        console.log("Noticia enviada al historial permanentemente.");
         return true;
     } catch (err: any) {
         console.error("Fallo interno en archiveArticle:", err);
@@ -250,31 +257,43 @@ export const archiveArticle = (id: string, authorId: string): boolean => {
 
 // 2. Función para mover una noticia del historial de vuelta a borradores (Restaurar)
 export const restoreArticle = (id: string): boolean => {
-    // Buscamos la noticia en el historial
-    const archivedIndex = archivedArticles.findIndex(a => a.id === id);
-    if (archivedIndex === -1) {
-        console.warn(`[dataService] restoreArticle: No se encontró la noticia con ID ${id} en el historial.`);
-        return false;
+    try {
+        // 1. Hacemos copias seguras
+        const currentArticles = [...getArticles()];
+        const currentArchive = [...getArchivedArticles()];
+
+        // 2. Buscamos la noticia en el historial
+        const archivedIndex = currentArchive.findIndex((a) => String(a.id) === String(id));
+        if (archivedIndex === -1) {
+            console.warn(`No se encontró la noticia con ID ${id} en el historial.`);
+            return false;
+        }
+
+        const articleToRestore = currentArchive[archivedIndex];
+        
+        // 3. Limpiamos las etiquetas de "borrada"
+        delete (articleToRestore as any).archivedAt;
+        delete (articleToRestore as any).originalStatus;
+
+        // 4. Devolvemos a borradores activos
+        currentArticles.unshift({
+            ...articleToRestore,
+            isPublished: false,
+            lastModified: new Date().toISOString()
+        } as Article);
+
+        // 5. La quitamos del historial
+        currentArchive.splice(archivedIndex, 1);
+
+        // 6. GRABADO OFICIAL: Guardamos en memoria profunda y base de datos local
+        saveArticlesToLocal(currentArticles);
+        saveArchivedArticlesToLocal(currentArchive);
+        notifyListeners(); // Refresca la pantalla al instante
+
+        console.log(`Noticia restaurada como borrador permanentemente.`);
+        return true;
+    } catch (err: any) {
+        console.error("Fallo interno en restoreArticle:", err);
+        throw err; 
     }
-
-    // Obtenemos la noticia del historial
-    const articleToRestore = archivedArticles[archivedIndex];
-    
-    // Eliminamos los metadatos de archivado
-    delete (articleToRestore as any).archivedAt;
-    delete (articleToRestore as any).originalStatus;
-
-    // La devolvemos a la lista activa como BORRADOR (no publicada)
-    articles = [{
-        ...articleToRestore,
-        isPublished: false, // Forzamos borrador por seguridad
-        lastModified: new Date().toISOString() // Marcamos como modificada
-    }, ...articles];
-
-    // La eliminamos del historial
-    archivedArticles = archivedArticles.filter(a => a.id !== id);
-
-    console.log(`[dataService] Noticia "${articleToRestore.title}" restaurada como borrador.`);
-    saveToLocal(); // Guardamos los cambios localmente
-    return true;
 };
