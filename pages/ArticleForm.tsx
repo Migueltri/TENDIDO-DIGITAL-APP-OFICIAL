@@ -238,7 +238,30 @@ const ArticleForm: React.FC = () => {
   
   const handleResultKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); addResult(); } };
   const removeResult = (index: number) => { setFormData(prev => ({ ...prev, bullfightResults: prev.bullfightResults?.filter((_, i) => i !== index) })); setFormIsDirty(true); };
-  const handleFormat = (command: string) => { document.execCommand(command, false); editorRef.current?.focus(); };
+  const handleFormat = (command: string) => { 
+    document.execCommand(command, false); 
+    setFormIsDirty(true);
+};
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+      // Analizamos si lo que están pegando contiene un archivo de imagen
+      const items = e.clipboardData?.items;
+      let hasImage = false;
+      if (items) {
+          for (let i = 0; i < items.length; i++) {
+              if (items[i].type.indexOf('image') !== -1) {
+                  hasImage = true;
+                  break;
+              }
+          }
+      }
+      
+      // Si es una imagen, bloqueamos la acción y avisamos
+      if (hasImage) {
+          e.preventDefault();
+          alert("❌ ERROR: No puedes pegar fotos directamente en el texto.\n\nEsto satura la base de datos y puede tumbar la web. Por favor, sube las fotos usando el botón 'Añadir Fotos' en la sección de Galería de arriba.");
+      }
+  };
 
   const handleLink = () => {
     const url = prompt('Introduce el enlace (URL):', 'https://');
@@ -479,7 +502,7 @@ const ArticleForm: React.FC = () => {
               <div className="flex items-center gap-1 p-2 border-b border-gray-100 bg-gray-50">
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('bold')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Bold size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('italic')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Italic size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('insertUnorderedList')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><List size={18} /></button><div className="w-px h-6 bg-gray-300 mx-1"></div><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleLink} className="p-2 hover:bg-gray-200 rounded text-gray-700"><LinkIcon size={18} /></button>
               </div>
-              <div ref={editorRef} contentEditable={!isSubmitting} suppressContentEditableWarning className="w-full p-4 min-h-[300px] outline-none font-serif text-gray-800 leading-relaxed overflow-y-auto text-lg prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800" onBlur={() => setFormIsDirty(true)} style={{ minHeight: '300px' }} />
+              <div ref={editorRef} contentEditable={!isSubmitting} suppressContentEditableWarning onPaste={handlePaste} className="w-full p-4 min-h-[300px] outline-none font-serif text-gray-800 leading-relaxed overflow-y-auto text-lg prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800" onBlur={() => setFormIsDirty(true)} style={{ minHeight: '300px' }} />
           </div>
         </div>
 
