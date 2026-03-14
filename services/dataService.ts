@@ -216,34 +216,38 @@ export const saveArticle = (article: Article, skipSync = false): void => {
 
 // --- SISTEMA DE ARCHIVADO DE NOTICIAS ---
 
-// 1. Función para mover una noticia activa al historial (Archivar)
 export const archiveArticle = (id: string, authorId: string): boolean => {
-    // Buscamos la noticia en la lista activa
-    const articleIndex = articles.findIndex(a => a.id === id);
-    if (articleIndex === -1) {
-        console.warn(`[dataService] archiveArticle: No se encontró la noticia con ID ${id}`);
-        return false;
+    try {
+        // 1. Buscamos la noticia
+        const articleIndex = articles.findIndex(a => a.id === id);
+        if (articleIndex === -1) return false;
+
+        const articleToArchive = articles[articleIndex];
+        const originalStatus = articleToArchive.isPublished ? 'published' : 'draft';
+        articleToArchive.isPublished = false;
+
+        // 2. Comprobación de seguridad: Si la lista de historial no existe, la crea
+        if (!Array.isArray(archivedArticles)) {
+            archivedArticles = [];
+        }
+
+        // 3. Metemos la noticia al principio del historial (de forma segura)
+        archivedArticles.unshift({
+            ...articleToArchive,
+            archivedAt: new Date().toISOString(),
+            originalStatus: originalStatus
+        });
+
+        // 4. Sacamos la noticia de la lista activa (de forma segura)
+        articles.splice(articleIndex, 1);
+
+        saveToLocal();
+        return true;
+    } catch (err) {
+        // Si algo falla, dejamos rastro en la consola y avisamos a la interfaz
+        console.error("Fallo interno en archiveArticle:", err);
+        throw err; 
     }
-
-    // Obtenemos la noticia
-    const articleToArchive = articles[articleIndex];
-    
-    // Guardamos su estado original y la forzamos a borrador
-    const originalStatus = articleToArchive.isPublished ? 'published' : 'draft';
-    articleToArchive.isPublished = false;
-    
-    // La añadimos al historial con metadatos extra
-    archivedArticles = [{
-        ...articleToArchive,
-        archivedAt: new Date().toISOString(),
-        originalStatus: originalStatus
-    }, ...archivedArticles];
-
-    // La eliminamos de la lista activa
-    articles = articles.filter(a => a.id !== id);
-    
-    saveToLocal(); // Guardamos los cambios localmente
-    return true;
 };
 
 // 2. Función para mover una noticia del historial de vuelta a borradores (Restaurar)
