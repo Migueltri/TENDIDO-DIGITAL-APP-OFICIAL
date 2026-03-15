@@ -238,14 +238,28 @@ const ArticleForm: React.FC = () => {
   const handleResultKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); addResult(); } };
   const removeResult = (index: number) => { setFormData(prev => ({ ...prev, bullfightResults: prev.bullfightResults?.filter((_, i) => i !== index) })); setFormIsDirty(true); };
   const editResult = (index: number) => {
-      const resultToEdit = formData.bullfightResults?.[index];
+      const currentResults = [...(formData.bullfightResults || [])];
+      const resultToEdit = currentResults[index];
+      
       if (resultToEdit) {
-          // Volvemos a poner los datos en los inputs
-          setNewResult({ bullfighter: resultToEdit.bullfighter, result: resultToEdit.result });
-          // Lo quitamos de la lista consolidada
-          removeResult(index);
-          // Ponemos el cursor automáticamente para que el redactor escriba al instante
-          setTimeout(() => bullfighterInputRef.current?.focus(), 50);
+          // 1. Ponemos los datos en las cajas de abajo
+          setNewResult({ 
+              bullfighter: resultToEdit.bullfighter, 
+              result: resultToEdit.result 
+          });
+          
+          // 2. Lo eliminamos de la lista visual
+          currentResults.splice(index, 1);
+          setFormData(prev => ({ ...prev, bullfightResults: currentResults }));
+          setFormIsDirty(true);
+          
+          // 3. Hacemos scroll automático para que el redactor vea dónde ha ido a parar el texto
+          setTimeout(() => {
+              if (bullfighterInputRef.current) {
+                  bullfighterInputRef.current.focus();
+                  bullfighterInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+          }, 50);
       }
   };
   const handleFormat = (command: string) => { 
