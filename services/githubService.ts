@@ -330,27 +330,30 @@ export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ succ
             const remoteInfo = await fetchRemoteDB(settings);
             const sha = remoteInfo ? remoteInfo.sha : '';
 
-            // FUSIÓN INTELIGENTE PARA LA SUBIDA
-            const localArts = getArticles();
-            const localArch = getArchivedArticles();
+            // 1. Extraemos los datos locales protegiéndolos contra valores nulos (|| [])
+            const localArts = getArticles() || [];
+            const localArch = getArchivedArticles() || [];
 
+            // 2. Fusionamos
             const merged = mergeData(
                 localArts, remoteInfo?.data?.articles || [],
                 localArch, remoteInfo?.data?.archivedArticles || []
             );
 
+            // 3. Preparamos la base de datos final
             const finalDB: DatabaseSchema = {
                 articles: merged.articles,
-                archivedArticles: merged.archive,
-                authors: getAuthors(),
+                archivedArticles: merged.archive, // Aquí se fusionó correctamente
+                authors: getAuthors() || [],
                 lastUpdated: new Date().toISOString()
             };
 
             const publishedCount = finalDB.articles.filter(a => a.isPublished).length;
             await pushToGitHub(settings, finalDB, sha, `🚀 Fusión Web: ${publishedCount} noticias activas`);
             
+            // 4. EL ARREGLO DEL PANTALLAZO BLANCO: Guardamos con el nombre correcto
             saveArticlesToLocal(finalDB.articles);
-            saveArchivedArticlesToLocal(finalDB.archive);
+            saveArchivedArticlesToLocal(finalDB.archivedArticles); // <-- Arreglado
 
             if (settings.vercelDeployHook) await fetch(settings.vercelDeployHook, { method: 'POST' }).catch(() => {});
         });
