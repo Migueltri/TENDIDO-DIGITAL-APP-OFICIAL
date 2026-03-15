@@ -350,7 +350,7 @@ export const syncWithGitHub = async (forcePush: boolean = false): Promise<{ succ
             await pushToGitHub(settings, finalDB, sha, `🚀 Fusión Web: ${publishedCount} noticias activas`);
             
             saveArticlesToLocal(finalDB.articles);
-            saveArchivedArticlesToLocal(finalDB.archive);
+            saveArchivedArticlesToLocal(finalDB.archivedArticles || []);
 
             if (settings.vercelDeployHook) await fetch(settings.vercelDeployHook, { method: 'POST' }).catch(() => {});
         });
