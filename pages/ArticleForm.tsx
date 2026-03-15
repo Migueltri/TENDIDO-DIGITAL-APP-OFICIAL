@@ -4,8 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getArticleById, getArticles, getAuthors, saveArticle, saveAuthor, subscribeToData, isDataReady } from '../services/dataService';
 import { compressImage } from '../services/imageService';
 import { Article, Author, Category, BullfightResult, GalleryImage } from '../types';
-import { ArrowLeft, Image as ImageIcon, UploadCloud, X, Plus, Bold, Italic, List, Shield, MapPin, Award, Trash2, FileEdit, Send, Camera, Loader2, MessageSquare, Camera as CameraIcon, Link as LinkIcon, Calendar } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { ArrowLeft, Image as ImageIcon, UploadCloud, X, Plus, Bold, Italic, List, Shield, MapPin, Award, Trash2, FileEdit, Send, Camera, Loader2, MessageSquare, Camera as CameraIcon, Link as LinkIcon, Calendar, Edit2 } from 'lucide-react';import { useAuth } from '../contexts/AuthContext';
 
 const ArticleForm: React.FC = () => {
   const { id } = useParams();
