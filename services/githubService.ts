@@ -7,18 +7,16 @@ export const getSettings = (): AppSettings => {
   const stored = localStorage.getItem(SETTINGS_KEY);
   const settings = stored ? JSON.parse(stored) : {};
   
-  // CORRECCIÓN: Eliminamos la condición ilógica y fijamos dataDB.json
   let filePath = settings.filePath || 'public/data/dataDB.json';
   
+  // Limpiamos la condición ilógica que borraba los tokens modernos (github_pat_)
   if (
       settings.repoName === 'Tendido-Digital' || 
       settings.repoName === 'tendido-digital-oficial' ||
-      settings.githubToken?.startsWith('github_pat_') ||
       settings.repoOwner === 'MiguelTro'
   ) {
       settings.repoName = 'tendido-digital-cms';
       settings.repoOwner = 'migueltri';
-      settings.githubToken = ''; 
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }
   
