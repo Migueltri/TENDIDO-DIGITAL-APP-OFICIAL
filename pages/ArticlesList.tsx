@@ -214,9 +214,9 @@ const ArticlesList: React.FC = () => {
           </button>
           {isAdmin && (
               <button onClick={() => setViewMode('history')} className={`px-6 py-3 font-medium text-sm flex items-center gap-2 transition-colors border-b-2 ${viewMode === 'history' ? 'border-gray-800 text-gray-800 bg-gray-50' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  <Archive size={18} /> Historial de Eliminadas
-                  <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{archivedArticles.length}</span>
-              </button>
+              <Archive size={18} /> Historial de Eliminadas
+              <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{archivedArticles.length}</span>
+          </button>
           )}
       </div>
 
