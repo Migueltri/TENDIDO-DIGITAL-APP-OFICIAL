@@ -99,7 +99,7 @@ const Authors: React.FC = () => {
         return;
     }
     
-    const result = await syncWithGitHub();
+    const result = await syncWithGitHub(true);
     
     setIsSaving(false);
     if (result.success) {
@@ -147,7 +147,7 @@ const Authors: React.FC = () => {
                       const updatedAuthor = { ...authorToUpdate, imageUrl: cloudUrl };
                       
                       saveAuthor(updatedAuthor, true);
-                      await syncWithGitHub();
+                      await syncWithGitHub(true);
                       
                       loadAuthors();
                       alert("✅ Foto de perfil actualizada y anclada en la web para siempre.");
