@@ -262,10 +262,12 @@ const ArticleForm: React.FC = () => {
           }, 50);
       }
   };
-  const handleFormat = (command: string) => { 
-    document.execCommand(command, false); 
-    setFormIsDirty(true);
-};
+  const handleFormat = (e: React.MouseEvent, command: string) => { 
+      e.preventDefault(); // Evita que el botón robe el foco
+      editorRef.current?.focus(); // Obliga al cursor a quedarse en el texto
+      document.execCommand(command, false); 
+      setFormIsDirty(true);
+  };
 
 // --- PARCHE DE EMERGENCIA: BLOQUEO DE IMÁGENES INLINE (Base64) ---
   
@@ -533,7 +535,7 @@ const ArticleForm: React.FC = () => {
        <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">Contenido de la Noticia</label>
           <div className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand-red/20 focus-within:border-brand-red bg-white ${isSubmitting ? 'border-gray-200 opacity-70 pointer-events-none' : 'border-gray-200'}`}>
-              <div className="flex items-center gap-1 p-2 border-b border-gray-100 bg-gray-50">
+             <div className="flex items-center gap-1 p-2 border-b border-gray-100 bg-gray-50">
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('bold')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Bold size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('italic')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><Italic size={18} /></button><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleFormat('insertUnorderedList')} className="p-2 hover:bg-gray-200 rounded text-gray-700"><List size={18} /></button><div className="w-px h-6 bg-gray-300 mx-1"></div><button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleLink} className="p-2 hover:bg-gray-200 rounded text-gray-700"><LinkIcon size={18} /></button>
               </div>
               <div ref={editorRef} contentEditable={!isSubmitting} suppressContentEditableWarning onPaste={handlePaste} onDrop={handleDrop} className="w-full p-4 min-h-[300px] outline-none font-serif text-gray-800 leading-relaxed overflow-y-auto text-lg prose prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800" onBlur={() => setFormIsDirty(true)} style={{ minHeight: '300px' }} />
