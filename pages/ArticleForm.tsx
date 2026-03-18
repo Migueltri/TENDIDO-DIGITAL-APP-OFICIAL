@@ -333,7 +333,7 @@ const ArticleForm: React.FC = () => {
       date: formData.date || new Date().toISOString(), isPublished: shouldPublish,
       lastModified: new Date().toISOString(), bullfightLocation: formData.bullfightLocation || '',
       bullfightCattle: formData.bullfightCattle || '', bullfightSummary: formData.bullfightSummary || '',
-      bullfightResults: formData.bullfightResults || []
+      bullfightResults: formData.bullfightResults || [], customOrder: formData.customOrder || 0
     };
 
     setIsSubmitting(true);
@@ -418,7 +418,7 @@ const ArticleForm: React.FC = () => {
           <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red outline-none text-lg font-medium bg-white font-serif" placeholder="Escribe un titular llamativo..." required disabled={isSubmitting} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Categoría</label>
                 <select name="category" value={formData.category} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red outline-none bg-white" disabled={isSubmitting}>
@@ -428,6 +428,10 @@ const ArticleForm: React.FC = () => {
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 flex items-center gap-2"><Calendar size={16} /> Fecha de Publicación</label>
                 <input type="datetime-local" value={getFormattedDateValue()} onChange={handleDateChange} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red outline-none bg-white text-gray-600 font-medium" disabled={isSubmitting} />
+            </div>
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Orden (Prioridad)</label>
+                <input type="number" min="0" name="customOrder" value={formData.customOrder || 0} onChange={(e) => setFormData(prev => ({ ...prev, customOrder: Number(e.target.value) }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red outline-none bg-white font-medium" disabled={isSubmitting} title="0 = Normal por fecha. 1 = Primera, 2 = Segunda..." />
             </div>
         </div>
 
