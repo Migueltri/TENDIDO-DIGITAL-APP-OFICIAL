@@ -1,4 +1,3 @@
-
 export enum Category {
   ACTUALIDAD = 'Actualidad',
   CRONICAS = 'Crónicas',
@@ -48,6 +47,7 @@ export interface Article {
   bullfightCattle?: string;
   bullfightSummary?: string;
   bullfightResults?: BullfightResult[];
+  customOrder?: number;
 }
 
 // Extensión para el historial
