@@ -75,28 +75,35 @@ const ArticlesList: React.FC = () => {
   };
 
   // --- SISTEMA PARA FIJAR NOTICIAS ---
-  const handleTogglePin = async (article: Article) => {
-      const isCurrentlyPinned = article.isPinned;
-      
-      if (isCurrentlyPinned) {
-          if (!window.confirm(`¿Estás seguro de que quieres DESFIJAR "${article.title}"? Dejará de aparecer fijada en la parte superior.`)) return;
-      } else {
-          if (!window.confirm(`¿Quieres FIJAR "${article.title}"? Aparecerá anclada en la parte superior de la página web.`)) return;
+const handleTogglePin = async (article: Article) => {
+  const isCurrentlyPinned = article.isPinned;
+
+  if (isCurrentlyPinned) {
+    if (!window.confirm(`¿Estás seguro de que quieres DESFIJAR "${article.title}"? Dejará de aparecer fijada en la parte superior.`)) return;
+  } else {
+    // --- EL CANDADO: COMPROBACIÓN ESTRICTA ---
+    const currentPinnedCount = articles.filter(a => a.isPinned).length;
+    if (currentPinnedCount >= 4) {
+        alert("⚠️ Límite alcanzado: Solo puedes fijar un máximo de 4 noticias. Desfija alguna primero.");
+        return; // Corta la función aquí mismo y no deja continuar
+    }
+    // ----------------------------------------
+    if (!window.confirm(`¿Quieres FIJAR "${article.title}"? Aparecerá anclada en la parte superior de la página web.`)) return;
+  }
+
+  try {
+    const updatedArticle = { ...article, isPinned: !isCurrentlyPinned };
+    saveArticle(updatedArticle, true);
+    setIsSyncing(true);
+    syncWithGitHub(true).then(result => {
+      if (result.success) setPendingChanges(0);
+      else {
+        alert("⚠️ Se cambió localmente, pero falló la subida a la web: " + result.message);
+        setPendingChanges(prev => prev + 1);
       }
-      
-      try {
-          const updatedArticle = { ...article, isPinned: !isCurrentlyPinned };
-          saveArticle(updatedArticle, true);
-          setIsSyncing(true);
-          syncWithGitHub(true).then(result => {
-              if (result.success) setPendingChanges(0);
-              else {
-                  alert("⚠️ Se cambió localmente, pero falló la subida a la web: " + result.message);
-                  setPendingChanges(prev => prev + 1);
-              }
-          }).finally(() => setIsSyncing(false));
-      } catch (error: any) { alert("❌ Error al modificar la noticia."); }
-  };
+    }).finally(() => setIsSyncing(false));
+  } catch (error: any) { alert("❌ Error al modificar la noticia."); }
+};
   
   const handleRestore = async (id: string) => {
       if(!window.confirm("¿Restaurar esta noticia? Volverá a la lista de borradores activos.")) return;
