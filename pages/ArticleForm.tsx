@@ -282,12 +282,19 @@ const ArticleForm: React.FC = () => {
       return false;
   };
 
-  // 1. Manejador de Pegado (onPaste - Ctrl+V)
+  // 1. Manejador de Pegado (onPaste - Ctrl+V) - BLINDADO CONTRA FORMATOS EXTERNOS
   const handlePaste = (e: React.ClipboardEvent) => {
+      e.preventDefault(); // Bloqueamos la acción por defecto del navegador
+
       if (isImageTransfer(e.clipboardData)) {
-          e.preventDefault();
           alert("❌ ERROR: No puedes pegar fotos directamente en el texto.\n\nEsto satura la base de datos y tumbará la web. Por favor, sube las fotos usando el botón 'Añadir Fotos' en la sección de Galería.");
+          return;
       }
+
+      // Si es texto, le quitamos todo el formato sucio (enlaces, colores, estilos de otras webs)
+      const text = e.clipboardData.getData('text/plain');
+      // Lo inyectamos como texto 100% puro
+      document.execCommand('insertText', false, text);
   };
 
   // 2. Manejador de Arrastre (onDrop)
