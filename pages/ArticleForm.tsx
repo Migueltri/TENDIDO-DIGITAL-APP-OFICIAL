@@ -330,27 +330,56 @@ const ArticleForm: React.FC = () => {
     const isValidUrl = (url: string) => { try { if (url.startsWith('data:image/') || url.startsWith('/')) return true; new URL(url); return true; } catch (e) { return false; } };
     if (!isValidUrl(formData.imageUrl)) { alert('La URL de la imagen de portada no es válida.'); return; }
 
-    const finalContent = editorRef.current?.innerHTML || formData.content || '';
-
-    const articleToSave: Article = {
-      id: formData.id || generateId(), title: formData.title || '', summary: formData.summary || '',
-      content: finalContent, category: formData.category as Category, authorId: formData.authorId || '',
-      imageUrl: formData.imageUrl || 'https://picsum.photos/800/600', imageCaption: formData.imageCaption || '',
-      photoCredit: formData.photoCredit || '', contentImages: formData.contentImages || [],
-      date: formData.date || new Date().toISOString(), isPublished: shouldPublish,
-      lastModified: new Date().toISOString(), bullfightLocation: formData.bullfightLocation || '',
-      bullfightCattle: formData.bullfightCattle || '', bullfightSummary: formData.bullfightSummary || '',
-      bullfightResults: formData.bullfightResults || [], customOrder: formData.customOrder || 0
-    };
-
+    // BLOQUEAMOS LA INTERFAZ MIENTRAS SE SUBEN LAS FOTOS
     setIsSubmitting(true);
+
     try {
+        // --- BLINDAJE DE IMÁGENES: Subir a la nube y guardar solo la URL ---
+        const { uploadImageAndGetUrl, getSettings } = await import('../services/githubService');
+        const settings = getSettings();
+
+        // 1. Procesar la imagen de portada
+        let finalImageUrl = formData.imageUrl;
+        if (finalImageUrl.startsWith('data:image')) {
+            finalImageUrl = await uploadImageAndGetUrl(settings, finalImageUrl, `portada-${Date.now()}.jpg`);
+        }
+
+        // 2. Procesar las imágenes de la galería
+        let finalContentImages = [...(formData.contentImages || [])];
+        for (let i = 0; i < finalContentImages.length; i++) {
+            let img = finalContentImages[i];
+            let urlToCheck = typeof img === 'string' ? img : img.url;
+
+            if (urlToCheck && urlToCheck.startsWith('data:image')) {
+                const cloudUrl = await uploadImageAndGetUrl(settings, urlToCheck, `galeria-${Date.now()}-${i}.jpg`);
+                if (typeof img === 'string') {
+                    finalContentImages[i] = cloudUrl;
+                } else {
+                    finalContentImages[i] = { ...img, url: cloudUrl };
+                }
+            }
+        }
+        // -------------------------------------------------------------------
+
+        const finalContent = editorRef.current?.innerHTML || formData.content || '';
+
+        const articleToSave: Article = {
+          id: formData.id || generateId(), title: formData.title || '', summary: formData.summary || '',
+          content: finalContent, category: formData.category as Category, authorId: formData.authorId || '',
+          imageUrl: finalImageUrl || 'https://picsum.photos/800/600', imageCaption: formData.imageCaption || '',
+          photoCredit: formData.photoCredit || '', contentImages: finalContentImages || [],
+          date: formData.date || new Date().toISOString(), isPublished: shouldPublish,
+          lastModified: new Date().toISOString(), bullfightLocation: formData.bullfightLocation || '',
+          bullfightCattle: formData.bullfightCattle || '', bullfightSummary: formData.bullfightSummary || '',
+          bullfightResults: formData.bullfightResults || [], customOrder: formData.customOrder || 0
+        };
+
         if (shouldPublish) {
             saveArticle(articleToSave, true); 
             const { syncWithGitHub } = await import('../services/githubService');
             const result = await syncWithGitHub(true);
             localStorage.removeItem('td_draft_article');
-            if (result.success) { alert("✅ ¡Noticia publicada con éxito!"); navigate('/noticias'); } 
+            if (result.success) { alert("✅ ¡Noticia publicada con éxito! Las imágenes se han optimizado en la nube."); navigate('/noticias'); } 
             else { alert(`⚠️ Hubo un problema subiendo a la web: ${result.message}`); setIsSubmitting(false); }
         } else {
             saveArticle(articleToSave);
@@ -360,7 +389,7 @@ const ArticleForm: React.FC = () => {
         }
     } catch (error: any) {
         setIsSubmitting(false);
-        alert("❌ Error crítico al guardar.");
+        alert("❌ Error al guardar o subir las imágenes: " + error.message);
     }
   };
 
