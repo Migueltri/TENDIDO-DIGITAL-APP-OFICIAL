@@ -343,7 +343,7 @@ const handleTogglePin = async (article: Article) => {
                       </td>
                       <td className="p-4 max-w-md">
                         <div className="flex items-start gap-3">
-                          <img src={article.imageUrl} className="w-16 h-12 rounded object-cover bg-gray-200 mt-1" alt="" />
+                          <img src={getCMSImageUrl(article.imageUrl)} className="w-16 h-12 rounded object-cover bg-gray-200 mt-1" alt="" />
                           <div><p className="font-medium text-gray-900 line-clamp-2 leading-tight mb-1">{article.title}</p><p className="text-xs text-gray-500 line-clamp-1">{article.summary}</p></div>
                         </div>
                       </td>
