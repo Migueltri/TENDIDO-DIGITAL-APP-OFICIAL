@@ -35,7 +35,30 @@ const ArticlesList: React.FC = () => {
 
   useEffect(() => {
 
-useEffect(() => {
+// SISTEMA DE ACTUALIZACIÓN DIARIA AUTOMÁTICA
+  useEffect(() => {
+    const checkDailySync = async () => {
+      const lastSync = localStorage.getItem('lastDailySync');
+      const today = new Date().toDateString();
+      
+      if (lastSync !== today) {
+        try {
+          setIsSyncing(true);
+          const result = await syncWithGitHub(true);
+          if (result.success) {
+            localStorage.setItem('lastDailySync', today);
+            setPendingChanges(0);
+          }
+        } catch (error) {
+          console.error("Fallo en la sincronización diaria automática");
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    };
+    checkDailySync();
+  }, []);
+      
     setCurrentPage(1);
   }, [viewMode, filterCategory, searchTerm]);
 
@@ -53,7 +76,7 @@ useEffect(() => {
     return unsubscribe;
   }, [viewMode]);
 
-  // SISTEMA DE ACTUALIZACIÓN DIARIA AUTOMÁTICA
+// SISTEMA DE ACTUALIZACIÓN DIARIA AUTOMÁTICA
   useEffect(() => {
     const checkDailySync = async () => {
       const lastSync = localStorage.getItem('lastDailySync');
