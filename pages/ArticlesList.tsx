@@ -277,7 +277,7 @@ const handleTogglePin = async (article: Article) => {
                         <div key={article.id} className={`p-4 flex flex-col gap-3 ${viewMode === 'history' ? 'bg-gray-50/50 grayscale-[20%]' : ''}`}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-2">
-                                    <img src={getCMSImageUrl(article.imageUrl)} className="w-12 h-12 rounded object-cover bg-gray-200" alt="" />
+                                    <img src={getCMSImageUrl(article.image)} className="w-12 h-12 rounded object-cover bg-gray-200" alt="" />
                                     <div>
                                         <h3 className="font-bold text-gray-900 line-clamp-2 text-sm leading-tight">{article.title}</h3>
                                         <p className="text-xs text-gray-500 mt-0.5">{new Date(article.date).toLocaleDateString()}</p>
@@ -343,7 +343,7 @@ const handleTogglePin = async (article: Article) => {
                       </td>
                       <td className="p-4 max-w-md">
                         <div className="flex items-start gap-3">
-                          <img src={getCMSImageUrl(article.imageUrl)} className="w-16 h-12 rounded object-cover bg-gray-200 mt-1" alt="" />
+                          <img src={getCMSImageUrl(article.image)} className="w-16 h-12 rounded object-cover bg-gray-200 mt-1" alt="" />
                           <div><p className="font-medium text-gray-900 line-clamp-2 leading-tight mb-1">{article.title}</p><p className="text-xs text-gray-500 line-clamp-1">{article.summary}</p></div>
                         </div>
                       </td>
