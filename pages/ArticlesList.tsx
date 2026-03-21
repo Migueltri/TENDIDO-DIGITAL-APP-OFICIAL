@@ -7,13 +7,19 @@ import { Plus, Search, Trash2, Edit2, Filter, AlertCircle, X, CheckCircle, Clock
 import { useAuth } from '../contexts/AuthContext';
 import PreviewModal from '../components/PreviewModal';
 
-// TRADUCTOR DE IMÁGENES AL CMS (VERSIÓN TABLA)
+    // TRADUCTOR DE IMÁGENES AL CMS (VERSIÓN INDESTRUCTIBLE)
 const getCMSImageUrl = (url: any) => {
-    if (!url || typeof url !== 'string') return '';
-    if (url.startsWith('data:image') || url.startsWith('http')) return url;
-    let cleanPath = url.startsWith('/') ? url.substring(1) : url;
+    if (!url || url === '') return 'https://ui-avatars.com/api/?name=Foto&background=f3f4f6&color=9ca3af';
+    
+    const strUrl = String(url);
+    if (strUrl.startsWith('data:image') || strUrl.startsWith('http')) return strUrl;
+    
+    let cleanPath = strUrl.startsWith('/') ? strUrl.substring(1) : strUrl;
     if (!cleanPath.startsWith('images/')) cleanPath = `images/${cleanPath}`;
-    return `https://raw.githubusercontent.com/Migueltri/TENDIDO-DIGITAL-CMS/main/public/${cleanPath}`;
+    
+    // El "?t=" fuerza al navegador a cargar la foto real y no la de la caché
+    const cacheBuster = new Date().getTime();
+    return `https://raw.githubusercontent.com/Migueltri/TENDIDO-DIGITAL-CMS/main/public/${cleanPath}?t=${cacheBuster}`;
 };
 
 const ArticlesList: React.FC = () => {
@@ -44,6 +50,8 @@ const ArticlesList: React.FC = () => {
       setArchivedArticles(getArchivedArticles());
       setAuthors(getAuthors());
     };
+
+    loadData(); // <-- ESTA ES LA LÍNEA CLAVE QUE CARGA TODO AL INSTANTE
 
     const unsubscribe = subscribeToData(() => {
       loadData();
