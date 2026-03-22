@@ -166,9 +166,9 @@ const ArticleForm: React.FC = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // 1. FRENO DE EMERGENCIA TÉCNICO: Límite estricto para no reventar la RAM móvil
-    if (files.length > 5) {
-      alert("⛔ LÍMITE DE MEMORIA: El navegador móvil no soporta procesar tantas fotos de alta calidad a la vez.\n\nPor favor, selecciona un máximo de 5 fotos por cada subida. Puedes repetir el proceso las veces que necesites.");
+    // 1. FRENO EXTREMO: Límite bajado a 2 fotos máximo por tanda.
+    if (files.length > 2) {
+      alert("⛔ LÍMITE DE MEMORIA CRÍTICO: Las fotos son demasiado pesadas para la memoria de este teléfono.\n\nSube las fotos de 2 en 2 máximo. El sistema necesita vaciar la memoria entre subidas para no colapsar la aplicación.");
       if (galleryInputRef.current) galleryInputRef.current.value = '';
       return;
     }
@@ -176,24 +176,24 @@ const ArticleForm: React.FC = () => {
     setLoadingImage(true);
 
     try {
-      // 2. PROCESAMIENTO GOTA A GOTA (Para no ahogar el procesador)
+      // 2. PROCESAMIENTO GOTA A GOTA ULTRA-LIGERO
       for (let i = 0; i < files.length; i++) {
-        // Comprimimos de forma más segura: máximo 1000px y 70% de calidad
-        const compressed = await compressImage(files[i], 1000, 0.7);
+        // Comprimimos más fuerte para salvar RAM: máximo 800px y 60% de calidad
+        const compressed = await compressImage(files[i], 800, 0.6);
 
-        // Guardamos la foto en la pantalla UNA a UNA, no todas de golpe al final
+        // Guardamos la foto en la pantalla
         setFormData(prev => ({
            ...prev,
            contentImages: [...(prev.contentImages || []), { url: compressed, caption: '', credit: '' }]
         }));
         setFormIsDirty(true);
 
-        // 3. EL RESPIRADOR: Obligamos al sistema a pausar 200ms. 
-        // Esto le da tiempo al móvil a limpiar la RAM antes de cargar la siguiente foto.
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // 3. RESPIRADOR PROFUNDO: Pausamos 500ms (medio segundo).
+        // Obliga al procesador del móvil a limpiar la RAM de la foto anterior antes de coger la siguiente.
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     } catch (error) {
-      alert("⚠️ El móvil se ha quedado sin memoria procesando una foto. Refresca la página y prueba con fotos menos pesadas.");
+      alert("⚠️ Tu móvil se ha quedado sin memoria procesando esta foto. Prueba a subirla de 1 en 1.");
     } finally {
       setLoadingImage(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
