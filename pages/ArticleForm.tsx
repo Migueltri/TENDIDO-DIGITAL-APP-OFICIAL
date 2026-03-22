@@ -164,23 +164,28 @@ const ArticleForm: React.FC = () => {
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      setLoadingImage(true);
-      try {
-        const newImagesToCrop = [];
-        for (let i = 0; i < files.length; i++) {
-          // Comprimimos cada foto de la galería una por una antes de encolarlas
-          const compressed = await compressImage(files[i], 1200, 0.8);
-          newImagesToCrop.push(compressed);
-        }
-        setPendingCrops(newImagesToCrop);
-        setIsCroppingGallery(true);
-      } catch (error) {
-        alert("Error procesando las imágenes de la galería.");
-      } finally {
-        setLoadingImage(false);
-        if (galleryInputRef.current) galleryInputRef.current.value = '';
+    if (!files || files.length === 0) return;
+    
+    setLoadingImage(true);
+    try {
+      const autoAddedImages = [];
+      // Comprimimos y procesamos UNA A UNA para no reventar la RAM del móvil
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await compressImage(files[i], 1200, 0.8);
+        autoAddedImages.push({ url: compressed, caption: '', credit: '' });
       }
+      
+      // Inyectamos todas directamente a la galería, saltándonos el recortador
+      setFormData(prev => ({
+         ...prev,
+         contentImages: [...(prev.contentImages || []), ...autoAddedImages]
+      }));
+      setFormIsDirty(true);
+    } catch (error) {
+      alert("⚠️ El móvil se ha quedado sin memoria. Sube las fotos en grupos más pequeños (ej: de 5 en 5).");
+    } finally {
+      setLoadingImage(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
     }
   };
 
