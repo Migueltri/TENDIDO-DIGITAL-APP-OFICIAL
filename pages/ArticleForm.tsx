@@ -598,7 +598,7 @@ const ArticleForm: React.FC = () => {
                       
                       {/* DISEÑO MEJORADO: Permite verticales usando object-contain y altura fija */}
                       <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center border border-gray-200">
-                          <img src={getCMSImageUrl(url)} alt={`Galería ${idx}`} className="max-w-full max-h-full object-contain drop-shadow-sm" />
+                          <img src={getCMSImageUrl(typeof img === 'string' ? img : img?.url)} alt={`Galería ${idx}`} className="max-w-full max-h-full object-contain drop-shadow-sm" />
                           <button type="button" onClick={() => removeGalleryImage(idx)} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 shadow-md" disabled={isSubmitting}>
                               <X size={14} />
                           </button>
