@@ -288,7 +288,7 @@ export const uploadImageAndGetUrl = async (settings: any, base64Image: string, f
     const response = await fetch(url, {
         method: 'PUT',
         headers: { 'Authorization': `token ${settings.githubToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `📸 Auto-upload: ${uniqueName}`, content: cleanBase64, branch: settings.repoBranch })
+        body: JSON.stringify({ message: `[skip ci] 📸 Auto-upload: ${uniqueName}`, content: cleanBase64, branch: settings.repoBranch })
     });
 
     if (!response.ok) throw new Error("Error al subir la imagen a la nube");
