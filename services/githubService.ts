@@ -289,7 +289,7 @@ export const uploadImageAndGetUrl = async (settings: any, base64Image: string, f
         method: 'PUT',
         headers: { 'Authorization': `token ${settings.githubToken}`, 'Content-Type': 'application/json' },
         // AQUÍ ESTÁ LA CLAVE: El [skip ci] tiene que estar al principio del mensaje
-        body: JSON.stringify({ message: `[skip ci] 📸 Subida de imagen: ${uniqueName}`, content: cleanBase64, branch: settings.repoBranch })
+        body: JSON.stringify({ message: `[skip ci] 📸 Subida automática: ${uniqueName}`, content: cleanBase64, branch: settings.repoBranch })
     });
 
     if (!response.ok) throw new Error("Error al subir la imagen a la nube");
