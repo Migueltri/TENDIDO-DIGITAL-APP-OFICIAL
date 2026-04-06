@@ -12,6 +12,7 @@ const INITIAL_AUTHORS: Author[] = [
   { id: '8', name: 'Ruben Castillo', role: 'Redacción', imageUrl: '/images/rubencas.jpg', systemRole: 'ADMIN' },
   { id: '9', name: 'Pepe Riofrio', role: 'Redacción', imageUrl: '/images/peperi.jpg', systemRole: 'ADMIN' },
   { id: '10', name: 'Adrián Mendez', role: 'Redacción', imageUrl: '/images/adrimen.jpg', systemRole: 'ADMIN' },
+  { id: '11', name: 'Jaime Gómez', role: 'Redacción', imageUrl: '/images/jaimegmz.jpg', systemRole: 'ADMIN' },
 ];
 
 export const INITIAL_ARTICLES: Article[] = [
