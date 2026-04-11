@@ -71,8 +71,9 @@ const Dashboard: React.FC = () => {
               console.log("✅ Datos sincronizados con la nube automáticamente (Smart Merge).");
           }
       } catch (error) {
-          console.error("Error en auto-sync:", error);
-      }
+  console.error("Error cargando noticias:", error);
+  alert("El servidor de GitHub está saturado. Espera un minuto y recarga la página.");
+}
   };
 
   const handleSync = async () => {
